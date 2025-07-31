@@ -3,6 +3,9 @@
 @tailwind utilities;
 
 :root {
+  --light-gray: #d1d5db; /* Tailwind gray-300 */
+  --medium-gray: #374151; /* Tailwind gray-700 */
+  --slate-gray: #374151; /* Tailwind gray-800 — better for input backgrounds */
   --brand-emerald: #19e586;
   --dark-navy: #0a0f1f;
   --light-gray: #a0aec0;
@@ -34,4 +37,19 @@ body {
   100% {
     background-position: 0% 50%;
   }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-0.25rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
 }
