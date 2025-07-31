@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --brand-emerald: #19e586;
+  --dark-navy: #0a0f1f;
+  --light-gray: #a0aec0;
+  --dark-bg: #0d1117;
+}
+
+body {
+  font-family: "Manrope", sans-serif;
+}
+
+.wavy-gradient {
+  background: linear-gradient(
+    135deg,
+    var(--dark-navy) 0%,
+    #1a2a6c 50%,
+    #b21f1f 100%
+  );
+  background-size: 200% 200%;
+  animation: wave 15s ease infinite;
+}
+
+@keyframes wave {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
