@@ -3,13 +3,34 @@
 @tailwind utilities;
 
 :root {
-  --light-gray: #d1d5db; /* Tailwind gray-300 */
-  --medium-gray: #374151; /* Tailwind gray-700 */
-  --slate-gray: #374151; /* Tailwind gray-800 — better for input backgrounds */
-  --brand-emerald: #19e586;
-  --dark-navy: #0a0f1f;
-  --light-gray: #a0aec0;
-  --dark-bg: #0d1117;
+  --emerald-green: #19e586; /* Brand accent color - buttons, highlights, links */
+  --deep-purple: #4c1d95; /* Accent color - gradients, active nav item, shadows */
+  --navy-blue: #1a202c; /* Dark background - page body, sections */
+  --dark-navy: #2d3748; /* Sidebar & card background base */
+
+  --text-primary: #ffffff; /* Main text color on dark backgrounds */
+  --text-secondary: #a0aec0; /* Muted text - descriptions, labels, subtext */
+
+  --card-bg: rgba(
+    45,
+    55,
+    72,
+    0.5
+  ); /* Semi-transparent card background - dashboard panels */
+  --sidebar-bg: rgba(
+    45,
+    55,
+    72,
+    0.3
+  ); /* Sidebar background - blurred translucent effect */
+  --border-color: #4a5568; /* Borders - dividers, card edges, sidebar outlines */
+  --hover-bg: rgba(
+    25,
+    229,
+    134,
+    0.1
+  ); /* Hover effect background - nav items, buttons */
+  --danger-color: #ef4444; /* Tailwind's red-500 */
 }
 
 body {

@@ -1,9 +1,8 @@
 // app/layout.tsx
 import "../styles/globals.css";
 import type { Metadata } from "next";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import { Manrope } from "next/font/google";
+import LayoutWrapper from "@/components/LayoutWrapper"; // New wrapper
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -24,9 +23,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={manrope.variable}>
       <body className="bg-black text-white font-manrope">
-        <Navbar />
-        <main className="min-h-screen">{children}</main>
-        <Footer />
+        <LayoutWrapper>{children}</LayoutWrapper>
       </body>
     </html>
   );
