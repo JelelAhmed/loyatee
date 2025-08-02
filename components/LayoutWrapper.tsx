@@ -10,13 +10,14 @@ export default function LayoutWrapper({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const isDashboardRoute = pathname.startsWith("/dashboard");
+  const isExcludedRoute =
+    pathname.startsWith("/dashboard") || pathname.startsWith("/admin");
 
   return (
     <>
-      {!isDashboardRoute && <Navbar />}
+      {!isExcludedRoute && <Navbar />}
       <main className="min-h-screen">{children}</main>
-      {!isDashboardRoute && <Footer />}
+      {!isExcludedRoute && <Footer />}
     </>
   );
 }
