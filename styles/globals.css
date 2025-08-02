@@ -30,7 +30,9 @@
     134,
     0.1
   ); /* Hover effect background - nav items, buttons */
-  --danger-color: #ef4444; /* Tailwind's red-500 */
+  --input-bg-color: rgba(255, 255, 255, 0.05);
+  --button-primary-hover: #14cc74;
+  --card-solid-bg: #202836; /* Darker solid card/modal background */
 }
 
 body {
