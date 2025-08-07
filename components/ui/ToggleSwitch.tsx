@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { ToggleLeft } from "lucide-react";
 
 interface ToggleSwitchProps {
