@@ -1,3 +1,5 @@
+"use server";
+
 import { createSupabaseServerClient } from "./utils";
 import { redirect } from "next/navigation";
 
@@ -92,30 +94,46 @@ export async function resetPassword(formData: FormData) {
 }
 
 // — EMAIL SIGN UP (WITH EMAIL VERIFICATION) —
+type SignUpState = {
+  success: boolean;
+  error: string | null;
+};
+
 export async function signUpWithEmail(
-  _prevState: { success: boolean; error: string },
+  prevState: SignUpState,
   formData: FormData
-) {
+): Promise<SignUpState> {
   const supabase = await createSupabaseServerClient();
 
   try {
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
     const phone = formData.get("phone") as string;
+    const username = formData.get("username") as string; // new
 
-    const { error } = await supabase.auth.signUp({
+    if (!email || !password || !phone || !username) {
+      return { success: false, error: "All fields are required" };
+    }
+
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { phone } },
+      options: {
+        data: {
+          phone,
+          display_name: username, // 👈 sets auth.users.display_name
+        },
+      },
     });
 
     if (error) throw new Error(error.message);
 
-    redirect("/verify-email");
+    return { success: true, error: null };
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : "An error occurred",
+      error:
+        error instanceof Error ? error.message : "An unexpected error occurred",
     };
   }
 }
@@ -130,10 +148,16 @@ export async function signUpWithPhone(
   try {
     const phone = formData.get("phone") as string;
     const password = formData.get("password") as string;
+    const display_name = formData.get("display_name") as string; // 👈 get from form
 
     const { error } = await supabase.auth.signUp({
       phone,
       password,
+      options: {
+        data: {
+          display_name,
+        },
+      },
     });
 
     if (error) throw new Error(error.message);

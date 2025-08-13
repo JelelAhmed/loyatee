@@ -1,9 +1,10 @@
+/* app/styles/globals.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --emerald-green: #19e586; /* Brand accent color - buttons, highlights, links */
+  --emerald-green: #19e86; /* Brand accent color - buttons, highlights, links */
   --deep-purple: #4c1d95; /* Accent color - gradients, active nav item, shadows */
   --navy-blue: #1a202c; /* Dark background - page body, sections */
   --dark-navy: #2d3748; /* Sidebar & card background base */
@@ -36,18 +37,24 @@
 }
 
 body {
-  font-family: "Manrope", sans-serif;
+  margin: 0;
+  padding: 0;
+  /* Remove font-family here to rely on RootLayout's font handling */
 }
 
 .wavy-gradient {
+  /* Static background for SSR */
   background: linear-gradient(
     135deg,
     var(--dark-navy) 0%,
     #1a2a6c 50%,
     #b21f1f 100%
   );
-  background-size: 200% 200%;
-  animation: wave 15s ease infinite;
+  /* Enable animation only client-side */
+  @media (prefers-reduced-motion: no-preference) {
+    background-size: 200% 200%;
+    animation: wave 15s ease infinite;
+  }
 }
 
 @keyframes wave {
