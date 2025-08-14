@@ -2,8 +2,16 @@
 
 import Link from "next/link";
 import Button from "@/components/ui/Button";
+import { useActionState, useTransition } from "react";
+import { signInWithEmail } from "@/app/actions/auth.actions";
 
 export default function SignInPage() {
+  const [isPending] = useTransition();
+  const [state, formAction] = useActionState(signInWithEmail, {
+    success: false,
+    error: null,
+  });
+
   return (
     <div className="wavy-gradient text-white min-h-screen flex items-center justify-center">
       <div className="w-full max-w-md p-8 space-y-8 bg-[var(--dark-blue)] bg-opacity-80 backdrop-blur-sm rounded-2xl shadow-2xl">
@@ -14,7 +22,7 @@ export default function SignInPage() {
           </p>
         </div>
 
-        <form className="mt-8 space-y-6">
+        <form action={formAction} className="mt-8 space-y-6">
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
               <label htmlFor="email" className="sr-only">
@@ -23,6 +31,7 @@ export default function SignInPage() {
               <input
                 type="email"
                 id="email"
+                name="email" // ✅ important
                 autoComplete="email"
                 required
                 placeholder="Email address"
@@ -36,6 +45,7 @@ export default function SignInPage() {
               <input
                 type="password"
                 id="password"
+                name="password" // ✅ important
                 autoComplete="current-password"
                 required
                 placeholder="Password"
@@ -44,8 +54,18 @@ export default function SignInPage() {
             </div>
           </div>
 
+          {state.error && (
+            <p className="text-red-400 text-sm mt-2">{state.error}</p>
+          )}
+
           <div className="text-center">
-            <Button type="submit">Sign In</Button>
+            <Button
+              type="submit"
+              disabled={isPending}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isPending ? "Processing..." : "Sign In"}
+            </Button>
           </div>
         </form>
 
@@ -53,7 +73,7 @@ export default function SignInPage() {
           Don’t have an account?{" "}
           <Link
             href="/signup"
-            className="font-medium text-[var(--emerald-green)] hover:underline"
+            className="font-medium text-emerald-500 hover:text-emerald-400 hover:underline transition-colors"
           >
             Sign Up
           </Link>

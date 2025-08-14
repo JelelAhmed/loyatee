@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useActionState } from "react";
 import clsx from "clsx";
@@ -8,17 +8,19 @@ import clsx from "clsx";
 import Button from "@/components/ui/Button";
 import { Eye, EyeOff } from "lucide-react";
 
-import { signUpWithEmail } from "../actions";
+import { signUpWithEmail, signUpWithPhone } from "../actions";
 
 export default function SignUpPage() {
   const [useOtpFlow, setUseOtpFlow] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
-  const [isPending] = useTransition();
 
-  const [state, formAction] = useActionState(signUpWithEmail, {
-    success: false,
-    error: null,
-  });
+  const [state, formAction, isPending] = useActionState(
+    useOtpFlow ? signUpWithPhone : signUpWithEmail,
+    {
+      success: false,
+      error: null,
+    }
+  );
 
   useEffect(() => {
     if (state.success && !useOtpFlow) {
@@ -70,10 +72,7 @@ export default function SignUpPage() {
             </button>
           </div>
 
-          <form
-            action={useOtpFlow ? undefined : formAction}
-            className="mt-8 space-y-6"
-          >
+          <form action={formAction} className="mt-8 space-y-6">
             <div className="rounded-md shadow-sm -space-y-px">
               {/* Username */}
               <div>
@@ -177,7 +176,7 @@ export default function SignUpPage() {
             </div>
           </form>
 
-          <p className="mt-6 text-center text-sm">
+          <p className="mt-6 text-center text-sm text-[var(--text-secondary)]">
             Already have an account?{" "}
             <Link
               href="/signin"

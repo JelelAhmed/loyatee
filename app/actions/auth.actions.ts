@@ -32,8 +32,16 @@ export async function signUp(
   }
 }
 
-// — SIGN IN —
-export async function signIn(formData: FormData) {
+// — SIGN IN WITH EMAIL —
+type SignInState = {
+  success: boolean;
+  error: string | null;
+};
+
+export async function signInWithEmail(
+  _prevState: SignInState,
+  formData: FormData
+): Promise<SignInState> {
   const supabase = await createSupabaseServerClient();
 
   try {
@@ -47,22 +55,7 @@ export async function signIn(formData: FormData) {
 
     if (error) throw new Error(error.message);
 
-    redirect("/dashboard");
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "An error occurred",
-    };
-  }
-}
-
-// — SIGN OUT —
-export async function signOut() {
-  const supabase = await createSupabaseServerClient();
-
-  try {
-    await supabase.auth.signOut();
-    redirect("/signin");
+    return { success: true, error: null };
   } catch (error) {
     return {
       success: false,
@@ -140,35 +133,56 @@ export async function signUpWithEmail(
 
 // — PHONE SIGN UP (OTP BASED) —
 export async function signUpWithPhone(
-  _prevState: { success: boolean; error: string },
+  _prevState: SignUpState,
   formData: FormData
 ) {
   const supabase = await createSupabaseServerClient();
+  let phone = formData.get("phone") as string;
 
   try {
-    const phone = formData.get("phone") as string;
+    const username = formData.get("username") as string;
     const password = formData.get("password") as string;
-    const display_name = formData.get("display_name") as string; // 👈 get from form
+
+    // Remove all non-digit characters
+    phone = phone.replace(/\D/g, "");
+
+    // If starts with '1' and length is 11 => US number (E.164: +1XXXXXXXXXX)
+    if (phone.startsWith("1") && phone.length === 11) {
+      phone = `+${phone}`;
+    }
+    // If starts with '234' => already Nigerian format
+    else if (phone.startsWith("234") && phone.length === 13) {
+      phone = `+${phone}`;
+    }
+    // If starts with '0' => Nigerian local format (convert to +234)
+    else if (phone.startsWith("0")) {
+      phone = `+234${phone.slice(1)}`;
+    }
+    // Fallback: Assume already full international without +
+    else {
+      phone = `+${phone}`;
+    }
+
+    console.log(phone, "full phone number");
 
     const { error } = await supabase.auth.signUp({
       phone,
       password,
       options: {
-        data: {
-          display_name,
-        },
+        channel: "sms",
+        data: { display_name: username },
       },
     });
 
     if (error) throw new Error(error.message);
-
-    redirect("/verify-otp"); // User will enter OTP to complete verification
   } catch (error) {
     return {
       success: false,
       error: error instanceof Error ? error.message : "An error occurred",
     };
   }
+
+  redirect(`/verify-otp?phone=${encodeURIComponent(phone)}`);
 }
 
 // — VERIFY OTP —
@@ -190,7 +204,22 @@ export async function verifyPhoneOtp(
 
     if (error) throw new Error(error.message);
 
-    redirect("/dashboard");
+    return { success: true, error: "" };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "An error occurred",
+    };
+  }
+}
+
+// — SIGN OUT —
+export async function signOut() {
+  const supabase = await createSupabaseServerClient();
+
+  try {
+    await supabase.auth.signOut();
+    redirect("/signin");
   } catch (error) {
     return {
       success: false,

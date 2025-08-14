@@ -15,7 +15,7 @@ export async function GET(request: Request) {
 
   try {
     // Exchange the token to get the session and extract the email
-    const { data, error: exchangeError } = await supabase.auth.exchangeToken(token);
+    const { data, error: exchangeError } = (await supabase).auth.verifyOtp
 
     if (exchangeError || !data) {
       console.error("Token exchange error:", exchangeError);
