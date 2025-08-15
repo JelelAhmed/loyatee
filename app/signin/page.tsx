@@ -2,15 +2,34 @@
 
 import Link from "next/link";
 import Button from "@/components/ui/Button";
-import { useActionState, useTransition } from "react";
-import { signInWithEmail } from "@/app/actions/auth.actions";
+import { useActionState, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { signInWithPassword } from "@/app/actions/auth.actions";
+import { SignInState } from "@/types/auth";
 
 export default function SignInPage() {
-  const [isPending] = useTransition();
-  const [state, formAction] = useActionState(signInWithEmail, {
-    success: false,
-    error: null,
-  });
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const [state, formAction, isPending] = useActionState<SignInState, FormData>(
+    signInWithPassword,
+    { success: false, error: null }
+  );
+
+  const [verifiedMessage, setVerifiedMessage] = useState<string | null>(null);
+
+  // Show message if user just verified email
+  useEffect(() => {
+    if (searchParams.get("verified") === "true") {
+      setVerifiedMessage("Your email has been verified! Please log in.");
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (state.success) {
+      router.push("/dashboard");
+    }
+  }, [state.success, router]);
 
   return (
     <div className="wavy-gradient text-white min-h-screen flex items-center justify-center">
@@ -20,21 +39,27 @@ export default function SignInPage() {
           <p className="text-[var(--text-secondary)]">
             Sign in to continue to Loyatee
           </p>
+
+          {verifiedMessage && (
+            <p className="mt-4 text-green-400 font-medium text-sm">
+              {verifiedMessage}
+            </p>
+          )}
         </div>
 
         <form action={formAction} className="mt-8 space-y-6">
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
-              <label htmlFor="email" className="sr-only">
-                Email address
+              <label htmlFor="identifier" className="sr-only">
+                Email or Phone
               </label>
               <input
-                type="email"
-                id="email"
-                name="email" // ✅ important
-                autoComplete="email"
+                type="text"
+                id="identifier"
+                name="identifier"
+                autoComplete="username"
                 required
-                placeholder="Email address"
+                placeholder="Email or Phone"
                 className="relative block w-full appearance-none rounded-t-lg border border-gray-600 bg-[var(--input-bg-color)] px-3 py-4 text-white placeholder-gray-400 focus:z-10 focus:border-emerald-500 focus:outline-none focus:ring-emerald-500 sm:text-sm"
               />
             </div>
@@ -45,7 +70,7 @@ export default function SignInPage() {
               <input
                 type="password"
                 id="password"
-                name="password" // ✅ important
+                name="password"
                 autoComplete="current-password"
                 required
                 placeholder="Password"

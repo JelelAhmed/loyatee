@@ -2,56 +2,36 @@
 
 import { createSupabaseServerClient } from "./utils";
 import { redirect } from "next/navigation";
+import { SignInState } from "@/types/auth";
+import { resendEmailVerification } from "./auth.helpers";
 
-// — SIGN UP —
-export async function signUp(
-  _prevState: { success: boolean; error: string },
-  formData: FormData
-) {
-  const supabase = await createSupabaseServerClient();
-
-  try {
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
-    const phone = formData.get("phone") as string;
-
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { phone } },
-    });
-
-    if (error) throw new Error(error.message);
-
-    redirect("/verify-email");
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "An error occurred",
-    };
-  }
-}
-
-// — SIGN IN WITH EMAIL —
-type SignInState = {
+type SignUpState = {
   success: boolean;
   error: string | null;
+  unverified?: boolean;
 };
 
-export async function signInWithEmail(
+export async function signInWithPassword(
   _prevState: SignInState,
   formData: FormData
 ): Promise<SignInState> {
   const supabase = await createSupabaseServerClient();
 
   try {
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
+    const identifier = formData.get("identifier") as string | null;
+    const password = formData.get("password") as string | null;
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    if (!identifier || !password) {
+      return { success: false, error: "Identifier and password are required" };
+    }
+
+    const isPhone = /^[\d+]+$/.test(identifier);
+
+    const { error } = await supabase.auth.signInWithPassword(
+      isPhone
+        ? { phone: identifier, password }
+        : { email: identifier, password }
+    );
 
     if (error) throw new Error(error.message);
 
@@ -86,11 +66,7 @@ export async function resetPassword(formData: FormData) {
   }
 }
 
-// — EMAIL SIGN UP (WITH EMAIL VERIFICATION) —
-type SignUpState = {
-  success: boolean;
-  error: string | null;
-};
+// - EMAIL SIGN UP (WITH EMAIL VERIFICATION) —
 
 export async function signUpWithEmail(
   prevState: SignUpState,
@@ -98,35 +74,50 @@ export async function signUpWithEmail(
 ): Promise<SignUpState> {
   const supabase = await createSupabaseServerClient();
 
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
+  const phone = formData.get("phone") as string;
+  const username = formData.get("username") as string;
+
+  if (!email || !password || !phone || !username) {
+    return { success: false, error: "All fields are required" };
+  }
+
   try {
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
-    const phone = formData.get("phone") as string;
-    const username = formData.get("username") as string; // new
-
-    if (!email || !password || !phone || !username) {
-      return { success: false, error: "All fields are required" };
-    }
-
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: {
-          phone,
-          display_name: username, // 👈 sets auth.users.display_name
-        },
+        data: { phone, display_name: username },
       },
     });
 
     if (error) throw new Error(error.message);
 
+    // Check if the email was already registered
+    console.dir(data, { depth: null, colors: true });
+
+    if (data.user && data.user.identities?.length === 0) {
+      return {
+        success: false,
+        error: "This email is already registered. Please sign in.",
+      };
+    }
+
+    // If user is created but not confirmed yet
+    if (data.user && !data.user.confirmed_at) {
+      return {
+        success: true,
+        error: "Email not verified. Please check your inbox.",
+        unverified: true,
+      };
+    }
+
     return { success: true, error: null };
-  } catch (error) {
+  } catch (err) {
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : "An unexpected error occurred",
+      error: err instanceof Error ? err.message : "Unexpected error",
     };
   }
 }
@@ -135,7 +126,7 @@ export async function signUpWithEmail(
 export async function signUpWithPhone(
   _prevState: SignUpState,
   formData: FormData
-) {
+): Promise<SignUpState> {
   const supabase = await createSupabaseServerClient();
   let phone = formData.get("phone") as string;
 

@@ -19,17 +19,22 @@ export default function SignUpPage() {
     {
       success: false,
       error: null,
+      unverified: false,
     }
   );
 
   useEffect(() => {
     if (state.success && !useOtpFlow) {
-      const timer = setTimeout(() => {
-        window.location.href = "/dashboard";
-      }, 100);
-      return () => clearTimeout(timer);
+      // Only redirect to dashboard if verified
+      if (!state.unverified) {
+        const timer = setTimeout(() => {
+          window.location.href = "/dashboard";
+        }, 100);
+        return () => clearTimeout(timer);
+      }
+      // Otherwise, stay on page and show feedback
     }
-  }, [state.success, useOtpFlow]);
+  }, [state.success, state.unverified, useOtpFlow]);
 
   return (
     <div className="relative min-h-screen flex items-center justify-center bg-gray-900 px-4 sm:px-6 lg:px-8 text-white">
@@ -159,6 +164,12 @@ export default function SignUpPage() {
 
             {state?.error && (
               <p className="text-red-500 text-sm text-center">{state.error}</p>
+            )}
+            {state.unverified && (
+              <div className="text-center mt-4 p-4 bg-yellow-600/20 text-yellow-400 rounded-lg">
+                ✅ Check your inbox! We sent a confirmation email to activate
+                your account.
+              </div>
             )}
 
             <div className="text-center">
