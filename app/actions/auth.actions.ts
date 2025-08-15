@@ -1,9 +1,10 @@
+//app\actions\auth.actions.ts
+
 "use server";
 
-import { createSupabaseServerClient } from "./utils";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { SignInState } from "@/types/auth";
-import { resendEmailVerification } from "./auth.helpers";
 
 type SignUpState = {
   success: boolean;
@@ -205,16 +206,14 @@ export async function verifyPhoneOtp(
 }
 
 // — SIGN OUT —
-export async function signOut() {
+export async function signOut(_formData: FormData) {
   const supabase = await createSupabaseServerClient();
 
   try {
     await supabase.auth.signOut();
-    redirect("/signin");
   } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "An error occurred",
-    };
+    console.error("Sign-out error:", error);
   }
+
+  redirect("/signin");
 }
