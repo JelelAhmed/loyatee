@@ -19,7 +19,6 @@ export default function AdminLoginPage() {
     }
 
     // Placeholder for login auth logic (replace with API call to lib/admin/auth.ts)
-    console.log("Admin Login Attempt:", { email, password });
   };
 
   const handleForgotPasswordSubmit = (e: React.FormEvent) => {
@@ -32,7 +31,6 @@ export default function AdminLoginPage() {
     }
 
     // Placeholder for forgot password logic (replace with API call to lib/admin/auth.ts)
-    console.log("Forgot Password Request:", { email });
   };
 
   return (

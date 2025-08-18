@@ -1,52 +1,55 @@
-// middleware.ts
-import { createServerClient } from "@supabase/ssr";
+import { updateSession } from "./lib/supabase/middleware";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export async function middleware(req: NextRequest) {
-  const res = NextResponse.next({
-    request: {
-      headers: req.headers,
-    },
-  });
+export async function middleware(request: NextRequest) {
+  // Call updateSession to refresh auth token and get user
+  const { response, user, session } = await updateSession(request);
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return req.cookies.getAll();
-        },
-        setAll(cookies) {
-          cookies.forEach(({ name, value, options }) =>
-            res.cookies.set(name, value, options)
-          );
-        },
-      },
-    }
-  );
+  // Prevent caching for protected routes
+  response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // console.log("🪵 Middleware Debug — Path:", request.nextUrl.pathname);
+  // console.log("🪵 Middleware Debug — User:", user);
+  // console.log("🪵 Middleware Debug — Session:", session);
+  // console.log("🪵 Middleware Debug — Cookies:", request.cookies.getAll());
 
-  // Public routes that don't need auth
   const publicPaths = ["/", "/signin", "/signup", "/verify-otp"];
-  const isPublic = publicPaths.some((path) =>
-    req.nextUrl.pathname.startsWith(path)
+  const authPaths = ["/signin", "/signup"];
+
+  const isPublic = publicPaths.some(
+    (path) =>
+      request.nextUrl.pathname === path ||
+      request.nextUrl.pathname.startsWith(path + "/")
+  );
+  const isAuthPath = authPaths.some(
+    (path) =>
+      request.nextUrl.pathname === path ||
+      request.nextUrl.pathname.startsWith(path + "/")
   );
 
-  if (!user && !isPublic) {
-    const redirectUrl = req.nextUrl.clone();
-    redirectUrl.pathname = "/signin";
-    redirectUrl.searchParams.set("redirect", req.nextUrl.pathname);
+  // Redirect authenticated users away from auth pages
+  if (user && isAuthPath) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/dashboard";
+
     return NextResponse.redirect(redirectUrl);
   }
 
-  return res;
+  // Protect private routes
+  if (!user && !isPublic) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/signin";
+    redirectUrl.searchParams.set("redirect", request.nextUrl.pathname);
+
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  return response;
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/admin/:path*"],
+  matcher: [
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
 };

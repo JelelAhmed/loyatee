@@ -1,7 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import UserStatsCard from "./UserStatsCard";
 import { ShoppingCart, PlusIcon } from "lucide-react";
 import { ArrowDown, ArrowUp, Wallet } from "lucide-react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase/client";
 
 const dummyTransactions = [
   {
@@ -28,6 +32,23 @@ const dummyTransactions = [
 ];
 
 export default function DashboardMain() {
+  console.log("DashboardMain mounted");
+
+  useEffect(() => {
+    console.log("useEffect fired ✅");
+
+    async function checkSession() {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) {
+        console.error("Error getting session:", error);
+      } else {
+        console.log("Session:", data.session);
+      }
+    }
+
+    checkSession();
+  }, []);
+
   return (
     <main className="py-6 bg-[#0d0f1a] text-white">
       {/* Stats */}

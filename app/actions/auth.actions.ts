@@ -2,6 +2,7 @@
 
 "use server";
 
+import { cookies } from "next/headers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { SignInState } from "@/types/auth";
@@ -206,14 +207,27 @@ export async function verifyPhoneOtp(
 }
 
 // — SIGN OUT —
+
 export async function signOut(_formData: FormData) {
   const supabase = await createSupabaseServerClient();
+  const cookieStore = await cookies();
 
   try {
-    await supabase.auth.signOut();
-  } catch (error) {
-    console.error("Sign-out error:", error);
-  }
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+    }
+
+    const {
+      data: { session: sessionAfter },
+    } = await supabase.auth.getSession();
+
+    cookieStore.delete("sb-access-token");
+    cookieStore.delete("sb-refresh-token");
+  } catch (error) {}
 
   redirect("/signin");
 }
