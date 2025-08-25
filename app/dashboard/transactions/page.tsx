@@ -59,11 +59,12 @@ export default function Transactions() {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--navy-blue)]">
+    <div className="min-h-screen flex flex-col bg-[#0d0f1a] text-white">
       <main className="flex-grow py-8 sm:py-12 px-4 sm:px-6 lg:px-10">
         <div className="max-w-7xl mx-auto">
+          {/* Header */}
           <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
-            <h2 className="text-2xl sm:text-3xl font-bold text-[var(--text-primary)]">
+            <h2 className="text-2xl sm:text-3xl font-bold text-emerald-400">
               Transactions
             </h2>
             <div className="flex items-center gap-2">
@@ -72,21 +73,24 @@ export default function Transactions() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search orders..."
-                className="bg-[var(--card-solid-bg)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--emerald-green)] focus:border-[var(--emerald-green)] transition-all"
+                className="bg-gray-900 border border-gray-800 rounded-lg px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition-all"
               />
               <button
                 type="button"
-                className="bg-[var(--card-solid-bg)] border border-[var(--border-color)] rounded-lg px-4 py-2 text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--hover-bg)] transition-colors"
+                className="bg-gray-900 border border-gray-800 rounded-lg px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 transition-colors"
               >
                 Filters
               </button>
             </div>
           </div>
-          <div className="bg-[var(--card-solid-bg)] rounded-2xl overflow-hidden border border-[var(--border-color)]">
+
+          {/* Transactions Table / Cards */}
+          <div className="bg-gray-900 rounded-2xl overflow-hidden border border-gray-800 shadow">
             <div className="space-y-4">
-              <div className="hidden sm:block">
-                <table className="w-full text-left">
-                  <thead className="border-b border-[var(--border-color)] bg-[var(--card-bg)]">
+              {/* Desktop Table */}
+              <div className="hidden sm:block overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="border-b border-gray-800 bg-gray-900/70">
                     <tr>
                       {[
                         "Date",
@@ -101,7 +105,7 @@ export default function Transactions() {
                       ].map((h) => (
                         <th
                           key={h}
-                          className="px-4 py-3 text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider"
+                          className="px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider"
                           scope="col"
                         >
                           {h}
@@ -109,50 +113,40 @@ export default function Transactions() {
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[var(--border-color)]">
+                  <tbody className="divide-y divide-gray-800">
                     {transactions.map((entry, i) => (
                       <tr
                         key={i}
-                        className="hover:bg-[var(--emerald-green)]/10 transition-colors cursor-pointer"
+                        className="hover:bg-gray-800/40 transition-colors"
                       >
-                        <td className="px-4 py-4 whitespace-nowrap text-xs text-[var(--text-secondary)]">
+                        <td className="px-5 py-4 text-gray-400">
                           {entry.date}
                         </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-xs font-medium text-[var(--text-primary)]">
-                          {entry.type}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-xs text-[var(--text-primary)]">
-                          {entry.network || "-"}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-xs text-[var(--text-secondary)]">
+                        <td className="px-5 py-4 font-medium">{entry.type}</td>
+                        <td className="px-5 py-4">{entry.network || "-"}</td>
+                        <td className="px-5 py-4 text-gray-300">
                           {entry.amount}
                         </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-xs text-[var(--text-primary)]">
-                          {entry.dataSize || "-"}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-xs text-[var(--text-primary)]">
-                          {entry.duration || "-"}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-xs text-[var(--text-primary)]">
-                          {entry.phone || "-"}
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-xs">
+                        <td className="px-5 py-4">{entry.dataSize || "-"}</td>
+                        <td className="px-5 py-4">{entry.duration || "-"}</td>
+                        <td className="px-5 py-4">{entry.phone || "-"}</td>
+                        <td className="px-5 py-4">
                           <span
-                            className={`relative inline-block px-2 py-1 font-medium text-xs rounded-full capitalize ${
+                            className={`inline-block px-2.5 py-1 rounded-full text-xs font-bold ${
                               entry.status === "Successful"
-                                ? "text-green-500 bg-green-500/10"
+                                ? "bg-emerald-500/10 text-emerald-400"
                                 : entry.status === "Pending"
-                                ? "text-yellow-500 bg-yellow-500/10"
-                                : "text-red-500 bg-red-500/10"
+                                ? "bg-yellow-500/10 text-yellow-400"
+                                : "bg-red-500/10 text-red-400"
                             }`}
                           >
                             {entry.status}
                           </span>
                         </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-right text-xs font-medium">
+                        <td className="px-5 py-4 text-right">
                           <a
                             href="#"
-                            className="text-[var(--emerald-green)] hover:text-[var(--button-primary-hover)] transition-colors"
+                            className="text-emerald-400 hover:text-emerald-500 transition-colors text-xs font-medium"
                           >
                             View Details
                           </a>
@@ -162,74 +156,53 @@ export default function Transactions() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Mobile Cards */}
               <div className="sm:hidden space-y-4 p-4">
                 {transactions.map((entry, i) => (
                   <div
                     key={i}
-                    className="bg-[var(--card-bg)] p-4 rounded-lg border border-[var(--border-color)] text-xs text-[var(--text-primary)]/90"
+                    className="bg-gray-900 p-5 rounded-lg border border-gray-800 shadow-sm text-xs"
                   >
-                    <div className="flex justify-between">
-                      <span className="font-semibold text-[var(--text-secondary)]">
-                        Date
-                      </span>
-                      <span>{entry.date}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-semibold text-[var(--text-secondary)]">
-                        Type
-                      </span>
-                      <span>{entry.type}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-semibold text-[var(--text-secondary)]">
-                        Network
-                      </span>
-                      <span>{entry.network || "-"}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-semibold text-[var(--text-secondary)]">
-                        Amount
-                      </span>
-                      <span>{entry.amount}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-semibold text-[var(--text-secondary)]">
-                        Data Size
-                      </span>
-                      <span>{entry.dataSize || "-"}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-semibold text-[var(--text-secondary)]">
-                        Duration
-                      </span>
-                      <span>{entry.duration || "-"}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-semibold text-[var(--text-secondary)]">
-                        Phone
-                      </span>
-                      <span>{entry.phone || "-"}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-semibold text-[var(--text-secondary)]">
+                    {[
+                      ["Date", entry.date],
+                      ["Type", entry.type],
+                      ["Network", entry.network || "-"],
+                      ["Amount", entry.amount],
+                      ["Data Size", entry.dataSize || "-"],
+                      ["Duration", entry.duration || "-"],
+                      ["Phone", entry.phone || "-"],
+                    ].map(([label, value]) => (
+                      <div
+                        key={label}
+                        className="flex justify-between mb-2 last:mb-0"
+                      >
+                        <span className="font-semibold text-gray-400">
+                          {label}
+                        </span>
+                        <span className="text-white">{value}</span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between mt-2">
+                      <span className="font-semibold text-gray-400">
                         Status
                       </span>
                       <span
-                        className={`inline-block px-2 py-1 font-medium rounded-full capitalize ${
+                        className={`inline-block px-2 py-1 rounded-full ${
                           entry.status === "Successful"
-                            ? "text-green-500 bg-green-500/10"
+                            ? "text-emerald-400 bg-emerald-500/10"
                             : entry.status === "Pending"
-                            ? "text-yellow-500 bg-yellow-500/10"
-                            : "text-red-500 bg-red-500/10"
+                            ? "text-yellow-400 bg-yellow-500/10"
+                            : "text-red-400 bg-red-500/10"
                         }`}
                       >
                         {entry.status}
                       </span>
                     </div>
-                    <div className="flex justify-end mt-2">
+                    <div className="flex justify-end mt-3">
                       <a
                         href="#"
-                        className="text-[var(--emerald-green)] hover:text-[var(--button-primary-hover)] text-xs font-medium"
+                        className="text-emerald-400 hover:text-emerald-500 text-xs font-medium"
                       >
                         View Details
                       </a>
@@ -238,21 +211,23 @@ export default function Transactions() {
                 ))}
               </div>
             </div>
-            <div className="flex items-center justify-between border-t border-[var(--border-color)] px-6 py-3">
-              <p className="text-xs text-[var(--text-secondary)]">
+
+            {/* Pagination */}
+            <div className="flex items-center justify-between border-t border-gray-800 px-6 py-3">
+              <p className="text-xs text-gray-400">
                 Showing 1 to 5 of 20 results
               </p>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  className="px-3 py-1 text-xs font-medium rounded-md bg-[var(--card-bg)] hover:bg-[var(--hover-bg)] transition-colors disabled:opacity-50"
+                  className="px-3 py-1 text-xs font-medium rounded-lg bg-gray-900 border border-gray-800 hover:bg-gray-800 transition-colors disabled:opacity-50"
                   disabled
                 >
                   Previous
                 </button>
                 <button
                   type="button"
-                  className="px-3 py-1 text-xs font-medium rounded-md bg-[var(--card-bg)] hover:bg-[var(--hover-bg)] transition-colors"
+                  className="px-3 py-1 text-xs font-medium rounded-lg bg-gray-900 border border-gray-800 hover:bg-gray-800 transition-colors"
                 >
                   Next
                 </button>

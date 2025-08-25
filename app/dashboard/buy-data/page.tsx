@@ -1,308 +1,323 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo, useActionState } from "react";
+import { getDataPlans, purchaseDataPlan } from "@/app/actions/data.actions";
+import { CreateSupabaseClient } from "@/lib/supabase/client";
+import { CheckCircle2, XCircle } from "lucide-react";
 
-export default function BuyData() {
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [network, setNetwork] = useState("MTN");
-  const [selectedPlan, setSelectedPlan] = useState("1GB - ₦500 - 7 Days");
+type DataPlan = {
+  id: string;
+  dataplan_id: string;
+  network: number;
+  plan_type: string;
+  plan_network: string;
+  month_validate: string;
+  plan: string;
+  plan_amount: string;
+  final_price: number;
+};
 
-  const history = [
-    {
-      date: "26 Jul, 2024",
-      amount: "₦500.00",
-      network: "MTN",
-      plan: "1GB",
-      duration: "7 Days",
-      phone: "08012345678",
-      status: "Successful",
-    },
-    {
-      date: "25 Jul, 2024",
-      amount: "₦1,000.00",
-      network: "Airtel",
-      plan: "2GB",
-      duration: "30 Days",
-      phone: "08123456789",
-      status: "Successful",
-    },
-    {
-      date: "24 Jul, 2024",
-      amount: "₦2,000.00",
-      network: "Glo",
-      plan: "5GB",
-      duration: "30 Days",
-      phone: "09034567890",
-      status: "Failed",
-    },
-    {
-      date: "23 Jul, 2024",
-      amount: "₦750.00",
-      network: "9mobile",
-      plan: "1.5GB",
-      duration: "7 Days",
-      phone: "07045678901",
-      status: "Successful",
-    },
-    {
-      date: "22 Jul, 2024",
-      amount: "₦500.00",
-      network: "MTN",
-      plan: "1GB",
-      duration: "7 Days",
-      phone: "08098765432",
-      status: "Successful",
-    },
-  ];
+type Transaction = {
+  id: string;
+  user_id: string;
+  type: string;
+  amount: number;
+  status: string;
+  payment_method: string;
+  data_size: string;
+  duration: string;
+  phone_number: string;
+  vendor_plan_id: string;
+  created_at: string;
+  network: string;
+  date: string;
+};
 
-  const networkOptions = ["MTN", "Airtel", "Glo", "9mobile"];
-  const dataPlans = [
-    { plan: "500MB", price: "₦300", duration: "7 Days" },
-    { plan: "1GB", price: "₦500", duration: "7 Days" },
-    { plan: "2GB", price: "₦1,000", duration: "30 Days" },
-    { plan: "5GB", price: "₦2,000", duration: "30 Days" },
-    { plan: "10GB", price: "₦3,500", duration: "30 Days" },
-  ];
+const dummyTransactions = [
+  {
+    id: 1,
+    network: "MTN",
+    amount: "₦500",
+    status: "Successful",
+    date: "2025-07-30",
+    vendor_plan_id: "1",
+    created_at: "2025-07-30",
+  },
+  {
+    id: 2,
+    network: "Glo",
+    amount: "₦1000",
+    status: "Failed",
+    date: "2025-07-29",
+    vendor_plan_id: "2",
+    created_at: "2025-07-30",
+  },
+  {
+    id: 3,
+    network: "Airtel",
+    amount: "₦750",
+    status: "Successful",
+    date: "2025-07-28",
+    vendor_plan_id: "3",
+    created_at: "2025-07-30",
+  },
+];
+
+export default function DataPlansPage() {
+  const [plans, setPlans] = useState<DataPlan[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedNetwork, setSelectedNetwork] = useState<string>("");
+  const [selectedPlanType, setSelectedPlanType] = useState<string>("");
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [phoneNumber, setPhoneNumber] = useState<string>("");
+  const [selectedPlan, setSelectedPlan] = useState<DataPlan | null>(null);
+  const [state, formAction] = useActionState(purchaseDataPlan, {
+    success: false,
+    error: null,
+  });
+
+  useEffect(() => {
+    async function fetchData() {
+      const { plans, error } = await getDataPlans();
+      setPlans(plans);
+      setError(error);
+    }
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    async function fetchData() {
+      const { plans, error } = await getDataPlans();
+      setPlans(plans);
+      setError(error);
+
+      const supabase = CreateSupabaseClient;
+      const { data: user } = await supabase.auth.getUser();
+      if (user.user) {
+        const { data: txData } = await supabase
+          .from("transactions")
+          .select("*")
+          .eq("user_id", user.user.id)
+          .eq("type", "data_purchase")
+          .order("created_at", { ascending: false });
+        setTransactions(txData ?? []);
+      }
+    }
+    fetchData();
+  }, []);
+
+  const networks = useMemo(
+    () => Array.from(new Set(plans.map((p) => p.plan_network))),
+    [plans]
+  );
+
+  const planTypes = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          plans
+            .filter((p) => p.plan_network === selectedNetwork)
+            .map((p) => p.plan_type)
+        )
+      ),
+    [plans, selectedNetwork]
+  );
+
+  const filteredPlans = useMemo(
+    () =>
+      plans
+        .filter((p) => p.plan_network === selectedNetwork)
+        .filter((p) =>
+          selectedPlanType ? p.plan_type === selectedPlanType : true
+        )
+        .sort((a, b) => a.final_price - b.final_price),
+    [plans, selectedNetwork, selectedPlanType]
+  );
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--navy-blue)]">
-      <main className="flex-grow flex items-center justify-center py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
-        <div className="w-full max-w-4xl space-y-8">
-          <div className="bg-[var(--card-bg)] backdrop-blur-lg p-6 sm:p-8 rounded-2xl shadow-2xl shadow-black/30 border border-[var(--border-color)]">
-            <h2 className="text-2xl sm:text-3xl font-bold text-center mb-6 sm:mb-8 text-[var(--text-primary)]">
-              Buy Data
-            </h2>
-            <form className="space-y-6">
-              <div>
-                <label
-                  htmlFor="phone-number"
-                  className="block text-sm font-medium text-[var(--text-secondary)] mb-2"
-                >
-                  Phone Number
-                </label>
-                <input
-                  type="tel"
-                  id="phone-number"
-                  name="phone-number"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  placeholder="08012345678"
-                  className="w-full bg-[var(--input-bg-color)] border border-[var(--border-color)] rounded-lg py-3 px-4 text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--emerald-green)] focus:border-transparent transition-colors"
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="network"
-                  className="block text-sm font-medium text-[var(--text-secondary)] mb-2"
-                >
-                  Network Provider
-                </label>
-                <select
-                  id="network"
-                  name="network"
-                  value={network}
-                  onChange={(e) => setNetwork(e.target.value)}
-                  className="w-full bg-[var(--card-solid-bg)] border border-[var(--border-color)] rounded-lg py-3 px-4 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--emerald-green)] focus:border-transparent transition-colors appearance-none"
-                  style={{
-                    backgroundImage:
-                      "url('data:image/svg+xml,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 fill=%27none%27 viewBox=%270 0 20 20%27%3e%3cpath stroke=%27%23A0AEC0%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27 stroke-width=%271.5%27 d=%27M6 8l4 4 4-4%27/%3e%3c/svg%3e')",
-                    backgroundPosition: "right 0.5rem center",
-                    backgroundRepeat: "no-repeat",
-                    backgroundSize: "1.5em 1.5em",
-                  }}
-                >
-                  {networkOptions.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-                  Data Plan
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  {dataPlans.map((plan) => (
-                    <button
-                      key={plan.plan}
-                      type="button"
-                      onClick={() =>
-                        setSelectedPlan(
-                          `${plan.plan} - ${plan.price} - ${plan.duration}`
-                        )
-                      }
-                      className={`p-3 rounded-lg border transition-all duration-200 ${
-                        selectedPlan ===
-                        `${plan.plan} - ${plan.price} - ${plan.duration}`
-                          ? "bg-[var(--emerald-green)] text-[var(--navy-blue)] border-[var(--emerald-green)]"
-                          : "bg-[var(--card-solid-bg)] text-[var(--text-primary)] border-[var(--border-color)] hover:bg-[var(--hover-bg)] hover:border-[var(--emerald-green)]"
-                      }`}
-                    >
-                      <div className="text-left">
-                        <p className="font-bold text-sm">{plan.plan}</p>
-                        <p
-                          className={`text-xs font-medium ${
-                            selectedPlan ===
-                            `${plan.plan} - ${plan.price} - ${plan.duration}`
-                              ? "text-[var(--text-primary)]"
-                              : "text-[var(--text-secondary)]/90"
-                          }`}
-                        >
-                          {plan.price}
-                        </p>
-                        <p
-                          className={`text-xs ${
-                            selectedPlan ===
-                            `${plan.plan} - ${plan.price} - ${plan.duration}`
-                              ? "text-[var(--text-primary)]/80"
-                              : "text-[var(--text-secondary)]/80"
-                          }`}
-                        >
-                          {plan.duration}
-                        </p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <button
-                  type="button"
-                  className="w-full bg-[var(--emerald-green)] text-[var(--navy-blue)] font-bold py-3 px-4 rounded-lg hover:bg-[var(--button-primary-hover)] transition-all duration-300 transform hover:scale-105 shadow-lg shadow-[var(--emerald-green)]/20"
-                >
-                  Buy Data
-                </button>
-              </div>
-            </form>
-          </div>
-          <div className="bg-[var(--card-bg)] backdrop-blur-lg p-6 sm:p-8 rounded-2xl shadow-2xl shadow-black/30 border border-[var(--border-color)]">
-            <h3 className="text-xl sm:text-2xl font-bold mb-6 text-[var(--text-primary)]">
-              Purchase History
-            </h3>
-            <div className="space-y-4">
-              <div className="hidden sm:block">
-                <table className="w-full">
-                  <thead>
-                    <tr>
-                      {[
-                        "Date",
-                        "Amount",
-                        "Network",
-                        "Plan",
-                        "Duration",
-                        "Phone",
-                        "Status",
-                      ].map((h) => (
-                        <th
-                          key={h}
-                          className="px-4 py-3 border-b-2 border-[var(--border-color)] text-left text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider"
-                        >
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {history.map((entry, i) => (
-                      <tr key={i}>
-                        <td className="px-4 py-4 border-b border-[var(--border-color)] text-xs text-[var(--text-primary)]/90">
-                          {entry.date}
-                        </td>
-                        <td className="px-4 py-4 border-b border-[var(--border-color)] text-xs text-[var(--text-primary)]/90">
-                          {entry.amount}
-                        </td>
-                        <td className="px-4 py-4 border-b border-[var(--border-color)] text-xs text-[var(--text-primary)]/90">
-                          {entry.network}
-                        </td>
-                        <td className="px-4 py-4 border-b border-[var(--border-color)] text-xs text-[var(--text-primary)]/90">
-                          {entry.plan}
-                        </td>
-                        <td className="px-4 py-4 border-b border-[var(--border-color)] text-xs text-[var(--text-primary)]/90">
-                          {entry.duration}
-                        </td>
-                        <td className="px-4 py-4 border-b border-[var(--border-color)] text-xs text-[var(--text-primary)]/90">
-                          {entry.phone}
-                        </td>
-                        <td className="px-4 py-4 border-b border-[var(--border-color)] text-xs">
-                          <span
-                            className={`relative inline-block px-2 py-1 font-semibold leading-tight rounded-full ${
-                              entry.status === "Successful"
-                                ? "text-green-500 bg-green-500/10"
-                                : "text-red-500 bg-red-500/10"
-                            }`}
-                          >
-                            {entry.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="sm:hidden space-y-4">
-                {history.map((entry, i) => (
-                  <div
-                    key={i}
-                    className="bg-[var(--card-solid-bg)] p-4 rounded-lg border border-[var(--border-color)] text-xs text-[var(--text-primary)]/90"
-                  >
-                    <div className="flex justify-between">
-                      <span className="font-semibold text-[var(--text-secondary)]">
-                        Date
-                      </span>
-                      <span>{entry.date}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-semibold text-[var(--text-secondary)]">
-                        Amount
-                      </span>
-                      <span>{entry.amount}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-semibold text-[var(--text-secondary)]">
-                        Network
-                      </span>
-                      <span>{entry.network}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-semibold text-[var(--text-secondary)]">
-                        Plan
-                      </span>
-                      <span>{entry.plan}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-semibold text-[var(--text-secondary)]">
-                        Duration
-                      </span>
-                      <span>{entry.duration}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-semibold text-[var(--text-secondary)]">
-                        Phone
-                      </span>
-                      <span>{entry.phone}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-semibold text-[var(--text-secondary)]">
-                        Status
-                      </span>
-                      <span
-                        className={`inline-block px-2 py-1 font-semibold leading-tight rounded-full ${
-                          entry.status === "Successful"
-                            ? "text-green-500 bg-green-500/10"
-                            : "text-red-500 bg-red-500/10"
-                        }`}
-                      >
-                        {entry.status}
-                      </span>
-                    </div>
-                  </div>
+    <main className="py-6 bg-[#0d0f1a] text-white min-h-screen">
+      <div className="max-w-6xl mx-auto px-4 space-y-8">
+        {/* Page Title */}
+        <h1 className="text-2xl font-semibold text-emerald-400">Buy Data</h1>
+
+        {/* Error / Success Messages */}
+        {error && (
+          <p className="text-red-400 bg-red-900/30 p-3 rounded-lg border border-red-700">
+            {error}
+          </p>
+        )}
+        {state.error && (
+          <p className="text-red-400 bg-red-900/30 p-3 rounded-lg border border-red-700">
+            {state.error}
+          </p>
+        )}
+        {state.success && selectedPlan && (
+          <p className="text-emerald-400 bg-emerald-900/30 p-3 rounded-lg border border-emerald-700 flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5" />
+            Successfully purchased {selectedPlan.plan} ({selectedPlan.plan_type}
+            ) for {phoneNumber}!
+          </p>
+        )}
+
+        {/* Buy Data Form */}
+        <form
+          action={formAction}
+          className="bg-gray-900 p-6 rounded-xl shadow space-y-6"
+        >
+          {/* Controls */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">
+                Select Network
+              </label>
+              <select
+                value={selectedNetwork}
+                onChange={(e) => {
+                  setSelectedNetwork(e.target.value);
+                  setSelectedPlanType("");
+                  setSelectedPlan(null);
+                }}
+                className="w-full p-2 rounded-lg bg-[#0d0f1a] text-white border border-gray-700 focus:ring-emerald-500 focus:border-emerald-500"
+              >
+                <option value="">Choose network</option>
+                {networks.map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
                 ))}
-              </div>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">
+                Select Plan Type
+              </label>
+              <select
+                value={selectedPlanType}
+                onChange={(e) => setSelectedPlanType(e.target.value)}
+                disabled={!selectedNetwork}
+                className="w-full p-2 rounded-lg bg-[#0d0f1a] text-white border border-gray-700 focus:ring-emerald-500 focus:border-emerald-500"
+              >
+                <option value="">All types</option>
+                {planTypes.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">
+                Phone Number
+              </label>
+              <input
+                type="text"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                placeholder="08123456789"
+                className="w-full p-2 rounded-lg bg-[#0d0f1a] text-white border border-gray-700 focus:ring-emerald-500 focus:border-emerald-500"
+              />
             </div>
           </div>
+
+          {/* Plans Grid */}
+          {selectedNetwork && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredPlans.length > 0 ? (
+                filteredPlans.map((plan) => (
+                  <button
+                    key={plan.dataplan_id}
+                    type="button"
+                    onClick={() => setSelectedPlan(plan)}
+                    className={`p-4 border rounded-xl bg-gray-800 hover:bg-gray-700 transition-colors text-left ${
+                      selectedPlan?.dataplan_id === plan.dataplan_id
+                        ? "border-emerald-400"
+                        : "border-gray-700"
+                    }`}
+                  >
+                    <h3 className="font-semibold">
+                      {plan.plan} ({plan.plan_type})
+                    </h3>
+                    <p className="text-sm text-gray-400">
+                      {plan.month_validate}
+                    </p>
+                    <p className="text-emerald-400 font-bold mt-2">
+                      ₦{plan.final_price}
+                    </p>
+                  </button>
+                ))
+              ) : (
+                <p className="text-gray-400 col-span-full text-center">
+                  No plans available.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Submit */}
+          {selectedPlan && (
+            <div className="flex justify-center">
+              <button
+                type="submit"
+                className="bg-emerald-400 hover:bg-emerald-500 text-black font-semibold px-6 py-2 rounded-lg transition"
+              >
+                Buy {selectedPlan.plan}
+              </button>
+            </div>
+          )}
+        </form>
+
+        {/* Purchase History */}
+        <div className="bg-gray-900 p-6 rounded-xl shadow">
+          <h2 className="text-lg font-semibold mb-4 text-emerald-400">
+            Purchase History
+          </h2>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="text-left text-gray-400 border-b border-gray-700">
+                  <th className="py-2">Network</th>
+                  <th className="py-2">Amount</th>
+                  <th className="py-2">Status</th>
+                  <th className="py-2">Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...transactions, ...dummyTransactions].map((tx, idx) => (
+                  <tr key={tx.id || idx} className="border-b border-gray-800">
+                    <td className="py-3">
+                      {tx.network || tx.vendor_plan_id?.split("-")[0]}
+                    </td>
+                    <td>₦{tx.amount}</td>
+                    <td>
+                      <span
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
+                          tx.status === "Successful" || tx.status === "success"
+                            ? "bg-emerald-500/10 text-emerald-400"
+                            : "bg-red-500/10 text-red-400"
+                        }`}
+                      >
+                        {tx.status === "Successful" ||
+                        tx.status === "success" ? (
+                          <CheckCircle2 className="w-3 h-3" />
+                        ) : (
+                          <XCircle className="w-3 h-3" />
+                        )}
+                        {tx.status}
+                      </span>
+                    </td>
+                    <td>
+                      {tx.date ||
+                        new Date(tx.created_at).toLocaleDateString("en-NG", {
+                          timeZone: "Africa/Lagos",
+                        })}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </main>
   );
 }

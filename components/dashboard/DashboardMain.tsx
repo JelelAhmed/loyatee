@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import UserStatsCard from "./UserStatsCard";
-import { ShoppingCart, PlusIcon } from "lucide-react";
+import { PlusIcon } from "lucide-react";
 import { ArrowDown, ArrowUp, Wallet } from "lucide-react";
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase/client";
+import { useEffect } from "react";
+import { CreateSupabaseClient } from "@/lib/supabase/client";
 
 const dummyTransactions = [
   {
@@ -38,7 +38,7 @@ export default function DashboardMain() {
     console.log("useEffect fired ✅");
 
     async function checkSession() {
-      const { data, error } = await supabase.auth.getSession();
+      const { data, error } = await CreateSupabaseClient.auth.getSession();
       if (error) {
         console.error("Error getting session:", error);
       } else {

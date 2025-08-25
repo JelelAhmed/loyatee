@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { UserCircle } from "lucide-react";
-import { supabase } from "@/lib/supabase/client";
+import { CreateSupabaseClient } from "@/lib/supabase/client";
 
 export default function DashboardHeader() {
   const [userName, setUserName] = useState<string | null>(null);
 
   useEffect(() => {
     async function getUser() {
-      const { data, error } = await supabase.auth.getSession();
+      const { data, error } = await CreateSupabaseClient.auth.getSession();
       if (error) {
         console.error("Error fetching session:", error);
         return;

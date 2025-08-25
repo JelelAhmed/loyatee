@@ -14,7 +14,13 @@ export async function middleware(request: NextRequest) {
   // console.log("🪵 Middleware Debug — Session:", session);
   // console.log("🪵 Middleware Debug — Cookies:", request.cookies.getAll());
 
-  const publicPaths = ["/", "/signin", "/signup", "/verify-otp"];
+  const publicPaths = [
+    "/",
+    "/signin",
+    "/signup",
+    "/auth/confirm",
+    "/api/webhook/paystack",
+  ];
   const authPaths = ["/signin", "/signup"];
 
   const isPublic = publicPaths.some(
