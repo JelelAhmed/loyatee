@@ -13,7 +13,7 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "Loyatee",
+  title: "Yata",
   description: "Buy cheap mobile data instantly in Nigeria",
 };
 

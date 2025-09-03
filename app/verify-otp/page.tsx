@@ -44,7 +44,7 @@ export default function VerifyOtpPage({
       <div className="w-full max-w-md space-y-8 z-10">
         <div className="bg-[var(--card-bg)] backdrop-blur-xl p-8 rounded-2xl shadow-2xl border border-[var(--border-color)]">
           <div className="text-center">
-            <h1 className="text-3xl font-extrabold text-white">Loyatee</h1>
+            <h1 className="text-3xl font-extrabold text-white">Yata</h1>
             <h2 className="mt-2 text-2xl font-bold tracking-tight text-white">
               Verify your phone
             </h2>

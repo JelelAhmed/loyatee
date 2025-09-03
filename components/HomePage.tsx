@@ -3,6 +3,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
+import HeroImage from "@/public/illustrations/hero_image.png";
+import { YataLogoMinimal } from "./logo/LogoOptions";
 
 // Define DataPlan type (adjust based on your actual type)
 interface DataPlan {
@@ -103,9 +105,26 @@ export default function HomePage({ plans, error }: HomePageProps) {
   return (
     <main className="min-h-screen bg-[#0d1117] text-white font-manrope">
       {/* Hero Section: Enhanced with quick-buy form, stats, and fallback SVG illustration */}
-      <section className="wavy-gradient px-4 py-20 md:py-28 text-center relative overflow-hidden">
-        <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-8 items-center">
-          {/* Left: Text and Form */}
+      {/* Hero Section */}
+      <section className="relative wavy-gradient px-4 py-20 md:py-28 text-center overflow-hidden">
+        {/* Background Image */}
+        {HeroImage && (
+          <div className="absolute inset-0">
+            <Image
+              src={HeroImage}
+              alt="Mobile phone with Nigerian network logos (MTN, Glo, Airtel, 9mobile)"
+              fill
+              className="object-cover object-right opacity-25"
+              priority
+            />
+            {/* Overlay to improve contrast */}
+            <div className="absolute inset-0 bg-gradient-to-r from-[#0d1117]/90 via-[#0d1117]/80 to-transparent" />
+          </div>
+        )}
+
+        {/* Content */}
+        <div className="relative z-10 max-w-6xl mx-auto grid md:grid-cols-2 gap-8 items-center">
+          {/* Left: Text + CTA */}
           <div className="text-left">
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold mb-6 leading-tight animate-fade-in">
               Buy Cheap Mobile Data Instantly
@@ -114,71 +133,19 @@ export default function HomePage({ plans, error }: HomePageProps) {
               Get affordable MTN, Glo, Airtel, and 9mobile plans with instant
               delivery across Nigeria.
             </p>
-            {/* Quick-Buy Form: Client-side interactivity */}
-            <form
-              className="space-y-4 max-w-md mx-auto md:mx-0"
-              aria-label="Quick buy data form"
-            >
-              <select
-                value={network}
-                onChange={(e) => setNetwork(e.target.value)}
-                className="w-full p-3 rounded-lg bg-[var(--input-bg-dark)] text-white border border-[var(--border-color)] focus:border-[#19e586] focus:outline-none transition-colors"
-                aria-label="Select network provider"
-              >
-                <option value="" disabled>
-                  Select Network
-                </option>
-                <option value="mtn">MTN</option>
-                <option value="glo">Glo</option>
-                <option value="airtel">Airtel</option>
-                <option value="9mobile">9mobile</option>
-              </select>
-              <select
-                value={dataPlan}
-                onChange={(e) => setDataPlan(e.target.value)}
-                className="w-full p-3 rounded-lg bg-[var(--input-bg-dark)] text-white border border-[var(--border-color)] focus:border-[#19e586] focus:outline-none transition-colors"
-                aria-label="Select data plan"
-              >
-                <option value="" disabled>
-                  Select Data Plan
-                </option>
-                <option value="1gb">1GB</option>
-                <option value="2gb">2GB</option>
-                <option value="5gb">5GB</option>
-              </select>
-              <input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="Enter Phone Number"
-                className="w-full p-3 rounded-lg bg-[var(--input-bg-dark)] text-white border border-[var(--border-color)] focus:border-[#19e586] focus:outline-none transition-colors"
-                aria-label="Phone number"
-              />
-              <button
-                type="submit"
-                className="w-full bg-[#19e586] text-black px-8 py-3 rounded-full text-lg font-semibold shadow-lg hover:bg-[var(--button-primary-hover)] hover:scale-105 transition-all duration-300"
-                aria-label="Buy data now"
+            <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto md:mx-0">
+              <Link
+                href="/dashboard/buy-data"
+                className="w-full sm:w-auto bg-[#19e586] text-black px-8 py-3 rounded-full text-lg font-semibold shadow-lg hover:bg-[var(--button-primary-hover)] hover:scale-105 transition-all duration-300 text-center"
               >
                 Buy Now
-              </button>
-            </form>
-          </div>
-          {/* Right: Illustration (fallback SVG if image unavailable) */}
-          <div className="hidden md:block animate-fade-in">
-            {/* Replace with actual image in /public/phone-illustration.png */}
-            <Image
-              src="/phone-illustration.png"
-              alt="Mobile phone with Nigerian network logos (MTN, Glo, Airtel, 9mobile)"
-              width={400}
-              height={400}
-              className="mx-auto hover:scale-105 transition-transform duration-300"
-              loading="lazy"
-              onError={() => <HeroIllustration />}
-            />
+              </Link>
+            </div>
           </div>
         </div>
-        {/* Stats Bar: Adds trust and social proof */}
-        <div className="mt-12 max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4 text-center animate-fade-in">
+
+        {/* Stats Bar */}
+        <div className="relative z-10 mt-16 max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 gap-y-8 text-center animate-fade-in">
           <div>
             <p className="text-2xl font-bold">10,000+</p>
             <p className="text-gray-400">Happy Users</p>
@@ -202,13 +169,17 @@ export default function HomePage({ plans, error }: HomePageProps) {
       <section className="px-4 py-16 bg-[#0d1117]">
         <div className="max-w-6xl mx-auto text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold mb-4 animate-fade-in">
-            Why Choose Loyatee?
+            Why Choose{" "}
+            <span>
+              <YataLogoMinimal className="inline-block h-[1.6em] w-auto align-baseline -mb-3 -mr-2" />
+            </span>
           </h2>
           <p className="text-gray-400 text-lg max-w-2xl mx-auto">
             Enjoy fast, secure, and affordable mobile data with unmatched
             support.
           </p>
         </div>
+
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4 max-w-6xl mx-auto">
           {[
             {
@@ -334,7 +305,7 @@ export default function HomePage({ plans, error }: HomePageProps) {
                 <p className="text-gray-400 mb-2">₦{plan.final_price}</p>
                 <p className="text-gray-400 mb-4">{plan.plan_type}</p>
                 <Link
-                  href="/buy-data"
+                  href="/dashboard/buy-data"
                   className="inline-block bg-[#19e586] text-black px-6 py-2 rounded-full font-semibold hover:bg-[var(--button-primary-hover)] hover:scale-105 transition-all duration-300"
                 >
                   Buy Now
@@ -370,19 +341,19 @@ export default function HomePage({ plans, error }: HomePageProps) {
               name: "Chidi O.",
               quote:
                 "Fastest data top-up I've ever used! Got my MTN 1GB in seconds.",
-              avatar: "/avatar1.png",
+              avatar: "/avatar1.jpg",
             },
             {
               name: "Aisha M.",
               quote:
                 "Super affordable and reliable. Customer support was amazing!",
-              avatar: "/avatar2.png",
+              avatar: "/avatar2.jpg",
             },
             {
               name: "Tunde K.",
               quote:
-                "The quick-buy form is so easy to use. Highly recommend Loyatee!",
-              avatar: "/avatar3.png",
+                "The quick-buy form is so easy to use. Highly recommend Yata!",
+              avatar: "/avatar3.jpg",
             },
           ].map((testimonial, i) => (
             <div
@@ -394,7 +365,7 @@ export default function HomePage({ plans, error }: HomePageProps) {
                 alt={`${testimonial.name}'s avatar`}
                 width={60}
                 height={60}
-                className="rounded-full mx-auto mb-4"
+                className="w-16 h-16 rounded-full object-cover mx-auto mb-4"
                 loading="lazy"
               />
               <p className="text-gray-400 mb-4 italic">"{testimonial.quote}"</p>
@@ -472,7 +443,7 @@ export default function HomePage({ plans, error }: HomePageProps) {
             {
               title: "FAQs",
               href: "/faq",
-              desc: "Answers to common questions about Loyatee.",
+              desc: "Answers to common questions about Yata.",
             },
           ].map((article, i) => (
             <div
@@ -496,7 +467,7 @@ export default function HomePage({ plans, error }: HomePageProps) {
       <section className="bg-[var(--dark-navy)] px-4 py-16 text-center">
         <div className="max-w-3xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold mb-4 animate-fade-in">
-            Join Loyatee Today
+            Join Yata Today
           </h2>
           <p className="text-gray-400 mb-6 max-w-xl mx-auto">
             Sign up for exclusive offers and seamless data purchases with our

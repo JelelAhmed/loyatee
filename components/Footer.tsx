@@ -32,7 +32,7 @@ export default function Footer() {
             </Link>
           </div>
           <p className="text-[#a0aec0] text-sm">
-            © {new Date().getFullYear()} Loyatee. All rights reserved.
+            © {new Date().getFullYear()} Yata. All rights reserved.
           </p>
         </div>
       </div>

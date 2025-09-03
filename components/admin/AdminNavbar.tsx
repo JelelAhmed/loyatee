@@ -67,7 +67,7 @@ export default function AdminNavbar() {
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between whitespace-nowrap border-b border-white/10 bg-black/20 backdrop-blur-sm px-4 sm:px-10 py-4">
         <div className="flex items-center gap-3">
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-[var(--emerald-green)]">
-            Loyatee
+            Yata
           </h1>
         </div>
         <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-[var(--text-secondary)]">

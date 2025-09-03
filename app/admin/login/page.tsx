@@ -37,7 +37,7 @@ export default function AdminLoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-[var(--navy-blue)] font-['Manrope',sans-serif] text-sm">
       <div className="w-full max-w-md p-6 bg-[var(--card-background-color)]/95 backdrop-blur-sm border border-[var(--border-color)] rounded-lg">
         <h1 className="text-3xl font-bold text-center text-[var(--emerald-green)] mb-6">
-          Loyatee Admin
+          Yata Admin
         </h1>
         {isLogin ? (
           <>

@@ -4,13 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  YataLogoPlayful,
-  YataLogoBadge,
-  YataLogoMinimal,
-  YataLogo,
-} from "../logo/LogoOptions";
-
-import {
   Menu,
   X,
   Home,
@@ -21,6 +14,8 @@ import {
   LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { signOut } from "@/app/actions";
+import { YataLogoMinimal } from "../logo/LogoOptions";
 
 const topNav = [
   {
@@ -91,7 +86,7 @@ export default function MobileSidebar() {
               onClick={() => setOpen(false)}
               className="flex items-center gap-2 text-2xl font-semibold"
             >
-              <YataLogo className="h-10 w-auto" />
+              <YataLogoMinimal className="h-10 w-auto" />
             </Link>
 
             <button onClick={() => setOpen(false)}>
@@ -129,6 +124,24 @@ export default function MobileSidebar() {
             const isActive = pathname === item.href;
             const isLogout = item.label === "Logout";
 
+            if (isLogout) {
+              return (
+                <form
+                  key="logout"
+                  action={signOut}
+                  className="flex items-center gap-4 px-4 py-2 rounded-lg transition-colors duration-300 cursor-pointer text-red-500 hover:bg-red-500/10"
+                >
+                  {item.icon}
+                  <button
+                    type="submit"
+                    className="font-medium w-full text-left"
+                  >
+                    {item.label}
+                  </button>
+                </form>
+              );
+            }
+
             return (
               <Link
                 key={item.href}
@@ -136,15 +149,13 @@ export default function MobileSidebar() {
                 onClick={() => setOpen(false)}
                 className={cn(
                   "flex items-center gap-4 px-4 py-2 rounded-lg transition relative",
-                  isLogout
-                    ? "text-red-500 hover:bg-red-500/10"
-                    : isActive
+                  isActive
                     ? "bg-[var(--hover-bg)] text-[var(--emerald-green)]"
                     : "text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] hover:text-[var(--text-primary)]"
                 )}
               >
-                {/* Accent bar for active link (except logout) */}
-                {!isLogout && isActive && (
+                {/* Accent bar for active link */}
+                {isActive && (
                   <span className="absolute left-0 top-0 h-full w-1 bg-[var(--emerald-green)] rounded-r-lg" />
                 )}
                 {item.icon}

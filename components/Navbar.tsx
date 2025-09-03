@@ -4,11 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Menu, X } from "lucide-react";
+import { YataLogoMinimal } from "./logo/LogoOptions";
 import { cn } from "@/lib/utils";
 
 const links = [
   { href: "/", label: "Home" },
-  { href: "/buy-data", label: "Buy Data" },
+  { href: "/dashboard/buy-data", label: "Buy Data" },
   { href: "/signin", label: "Sign In" },
 ];
 
@@ -41,7 +42,7 @@ export default function Navbar() {
           href="/"
           className="animate-fade-in text-[#19e586] font-extrabold text-3xl"
         >
-          Loyatee
+          <YataLogoMinimal className="h-10 w-auto" />
         </Link>
 
         {/* Desktop Links */}

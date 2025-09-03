@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useActionState } from "react";
+import { YataLogoMinimal } from "@/components/logo/LogoOptions";
 import clsx from "clsx";
 
 import Button from "@/components/ui/Button";
@@ -11,7 +12,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { signUpWithEmail, signUpWithPhone } from "../actions";
 
 export default function SignUpPage() {
-  const [useOtpFlow, setUseOtpFlow] = useState(true);
+  const [useOtpFlow, setUseOtpFlow] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const [state, formAction, isPending] = useActionState(
@@ -43,7 +44,8 @@ export default function SignUpPage() {
       <div className="w-full max-w-md space-y-8 z-10">
         <div className="bg-[var(--card-bg)] backdrop-blur-xl p-8 rounded-2xl shadow-2xl border border-[var(--border-color)]">
           <div className="text-center">
-            <h1 className="text-3xl font-extrabold text-white">Loyatee</h1>
+            {/* <YataLogoMinimal className="h-10 w-auto mx-auto mr-7" /> */}
+
             <h2 className="mt-2 text-2xl font-bold tracking-tight text-white">
               Create your account
             </h2>
@@ -53,7 +55,7 @@ export default function SignUpPage() {
           </div>
 
           <div className="flex justify-center mt-4 space-x-4 text-sm">
-            <button
+            {/* <button
               onClick={() => setUseOtpFlow(true)}
               className={clsx(
                 "inline-block py-1 border-b-2",
@@ -63,7 +65,7 @@ export default function SignUpPage() {
               )}
             >
               Sign in with OTP
-            </button>
+            </button> */}
             <button
               onClick={() => setUseOtpFlow(false)}
               className={clsx(

@@ -37,7 +37,7 @@ export default function SignInPage() {
         <div className="text-center">
           <h1 className="text-4xl font-bold text-white mb-2">Welcome Back</h1>
           <p className="text-[var(--text-secondary)]">
-            Sign in to continue to Loyatee
+            Sign in to continue to Yata
           </p>
 
           {verifiedMessage && (
@@ -59,7 +59,7 @@ export default function SignInPage() {
                 name="identifier"
                 autoComplete="username"
                 required
-                placeholder="Email or Phone"
+                placeholder="Email"
                 className="relative block w-full appearance-none rounded-t-lg border border-gray-600 bg-[var(--input-bg-color)] px-3 py-4 text-white placeholder-gray-400 focus:z-10 focus:border-emerald-500 focus:outline-none focus:ring-emerald-500 sm:text-sm"
               />
             </div>

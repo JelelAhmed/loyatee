@@ -5,8 +5,8 @@ import ToggleSwitch from "@/components/ui/ToggleSwitch";
 import { Smartphone, CreditCard, Wallet } from "lucide-react";
 
 export default function SettingsPage() {
-  const [siteName, setSiteName] = useState("Loyatee");
-  const [adminEmail, setAdminEmail] = useState("admin@loyatee.com");
+  const [siteName, setSiteName] = useState("Yata");
+  const [adminEmail, setAdminEmail] = useState("admin@yata.com");
   const [notifications, setNotifications] = useState(true);
   const [networkBundles, setNetworkBundles] = useState({
     mtn: true,
