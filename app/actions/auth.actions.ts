@@ -5,7 +5,7 @@
 import { cookies } from "next/headers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { SignInState } from "@/types/auth";
+import { SignInState, AuthState } from "@/types/auth";
 
 type SignUpState = {
   success: boolean;
@@ -38,28 +38,6 @@ export async function signInWithPassword(
     if (error) throw new Error(error.message);
 
     return { success: true, error: null };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "An error occurred",
-    };
-  }
-}
-
-// — RESET PASSWORD —
-export async function resetPassword(formData: FormData) {
-  const supabase = await createSupabaseServerClient();
-
-  try {
-    const email = formData.get("email") as string;
-
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/reset-password-confirm`,
-    });
-
-    if (error) throw new Error(error.message);
-
-    redirect("/reset-password-sent");
   } catch (error) {
     return {
       success: false,
@@ -230,4 +208,51 @@ export async function signOut(_formData: FormData) {
   } catch (error) {}
 
   redirect("/signin");
+}
+// --- REQUEST PASSWORD RESET ---
+export async function requestPasswordReset(
+  _prevState: AuthState,
+  formData: FormData
+): Promise<AuthState & { redirect?: string }> {
+  const supabase = await createSupabaseServerClient();
+
+  try {
+    const email = formData.get("email") as string;
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/reset-password`,
+    });
+
+    if (error) throw new Error(error.message);
+
+    // instead of redirect(), return success + target path
+    return { success: true, error: "", redirect: "/reset-sent" };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Something went wrong",
+    };
+  }
+}
+
+// --- UPDATE PASSWORD ---
+export async function updatePassword(
+  _prevState: AuthState,
+  formData: FormData
+): Promise<AuthState> {
+  const supabase = await createSupabaseServerClient();
+
+  try {
+    const password = formData.get("password") as string;
+    const { error } = await supabase.auth.updateUser({ password });
+
+    if (error) throw new Error(error.message);
+
+    return { success: true, error: "" };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "An error occurred",
+    };
+  }
 }

@@ -18,6 +18,10 @@ export async function middleware(request: NextRequest) {
     "/",
     "/signin",
     "/signup",
+    "/verify-otp",
+    "/forgot-password",
+    "/reset-password",
+    "/reset-sent",
     "/auth/confirm",
     "/api/webhook/paystack",
   ];

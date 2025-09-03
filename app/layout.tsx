@@ -2,6 +2,7 @@
 import "../styles/globals.css";
 import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
+import { Toaster } from "sonner";
 import LayoutWrapper from "@/components/LayoutWrapper";
 
 const manrope = Manrope({
@@ -27,6 +28,7 @@ export default function RootLayout({
         className={`bg-[var(--navy-blue)] text-[var(--text-primary)] ${manrope.className}`}
       >
         <LayoutWrapper>{children}</LayoutWrapper>
+        <Toaster richColors position="top-center" />
       </body>
     </html>
   );

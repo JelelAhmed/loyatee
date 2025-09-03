@@ -19,7 +19,9 @@ export interface PurchaseDataPlanInput {
   userId: string;
   networkCode: string;
   phoneNumber: string;
+  duration: string;
   planId: string;
+  planSize: string;
   amount: number;
   ported?: boolean; // optional, defaults to true
 }

@@ -7,6 +7,8 @@ import {
   VendorResponse,
 } from "@/types/transactions";
 import { mapVendorErrorToUserMessage } from "@/lib/utils";
+import { calculateFinalPrice } from "@/lib/datastation/pricing";
+import { NETWORK_MAPPING } from "@/lib/datastation/constants";
 
 type DataPlan = {
   id: string;
@@ -18,14 +20,6 @@ type DataPlan = {
   plan: string;
   plan_amount: string; // API returns as string, e.g., "780.0"
   final_price: number; // Price with your fee
-};
-
-// Static network mapping matching DataStation
-const NETWORK_MAPPING: Record<string, string> = {
-  "1": "MTN",
-  "2": "GLO",
-  "3": "9MOBILE",
-  "4": "AIRTEL",
 };
 
 export async function getDataPlans() {
@@ -46,20 +40,16 @@ export async function getDataPlans() {
       throw new Error(`Failed to fetch plans: ${response.status} ${errorText}`);
     }
 
-    let data;
-    try {
-      data = await response.json();
-    } catch (err) {
+    const data = await response.json().catch(async () => {
       const rawText = await response.text();
       throw new Error(`Invalid JSON response: ${rawText}`);
-    }
+    });
 
     const dataplans = data.Dataplans || {};
-    const percentage = data.percentage || {};
+    const discountMap = data.percentage || {};
     const plans: DataPlan[] = [];
     const seenIds = new Set<string>();
 
-    // Only use ALL group per network
     Object.keys(dataplans).forEach((networkKey) => {
       const planGroups = dataplans[networkKey] || {};
       const rawPlans = planGroups["ALL"] || [];
@@ -72,10 +62,13 @@ export async function getDataPlans() {
           NETWORK_MAPPING[plan.network.toString()] ||
           `Unknown (${plan.network})`;
 
-        const discountPercent = percentage[networkName]?.percent || 100;
-        const markup = 1.1;
         const planAmount = parseFloat(plan.plan_amount);
-        const finalPrice = (planAmount / (discountPercent / 100)) * markup;
+
+        const finalPrice = calculateFinalPrice(
+          planAmount,
+          networkName,
+          discountMap
+        );
 
         plans.push({
           ...plan,
@@ -83,20 +76,16 @@ export async function getDataPlans() {
           plan_network: networkName,
           plan_type: plan.plan_type?.trim() || "UNKNOWN",
           plan_amount: plan.plan_amount,
-          final_price: Number(finalPrice.toFixed(2)),
+          final_price: finalPrice,
         });
 
         seenIds.add(dedupeKey);
       });
     });
 
-    // ✅ sort cheapest first globally
     plans.sort((a, b) => a.final_price - b.final_price);
 
-    return {
-      plans,
-      error: null,
-    };
+    return { plans, error: null };
   } catch (err) {
     console.error("getDataPlans error:", err);
     return {
@@ -105,177 +94,6 @@ export async function getDataPlans() {
     };
   }
 }
-
-// console log heavy setup
-// export async function purchaseDataPlan(
-//   input: PurchaseDataPlanInput
-// ): Promise<PurchaseResult> {
-//   const {
-//     userId,
-//     networkCode,
-//     phoneNumber,
-//     planId,
-//     amount,
-//     ported = true,
-//   } = input;
-//   const supabase = await createSupabaseServerClient();
-//   const token = process.env.DATASTATION_TOKEN;
-
-//   if (!token) {
-//     console.error("[purchaseDataPlan] Missing vendor token");
-//     return { success: false, message: "DATASTATION_TOKEN not set" };
-//   }
-
-//   try {
-//     console.log("[purchaseDataPlan] Starting purchase flow", {
-//       userId,
-//       networkCode,
-//       phoneNumber,
-//       planId,
-//       amount,
-//     });
-
-//     // 1️⃣ Deduct wallet balance
-//     console.log("[purchaseDataPlan] Deducting wallet balance…");
-//     const { data: wallet, error: deductError } = await supabase.rpc(
-//       "deduct_wallet_balance",
-//       { user_id: userId, amount }
-//     );
-
-//     console.log("[purchaseDataPlan] Wallet deduction result:", {
-//       wallet,
-//       deductError,
-//     });
-
-//     if (deductError) {
-//       console.error("[purchaseDataPlan] Wallet deduction failed:", deductError);
-//       return { success: false, message: "Insufficient wallet balance" };
-//     }
-
-//     // 2️⃣ Insert transaction (pending)
-//     console.log("[purchaseDataPlan] Inserting pending transaction…");
-//     const { data: tx, error: insertError } = await supabase
-//       .from("transactions")
-//       .insert({
-//         user_id: userId,
-//         type: "data_purchase",
-//         network_code: networkCode,
-//         amount,
-//         phone_number: phoneNumber,
-//         status: "pending",
-//         data_size: null, // will be filled later
-//         duration: null,
-//       })
-//       .select()
-//       .single();
-
-//     console.log("[purchaseDataPlan] Transaction insert result:", {
-//       tx,
-//       insertError,
-//     });
-
-//     if (insertError || !tx) {
-//       console.error(
-//         "[purchaseDataPlan] Insert transaction failed:",
-//         insertError
-//       );
-//       // rollback wallet deduction
-//       await supabase.rpc("refund_wallet_balance", { user_id: userId, amount });
-//       return { success: false, message: "Failed to create transaction" };
-//     }
-
-//     const transactionId = tx.id;
-//     console.log("[purchaseDataPlan] Pending transaction ID:", transactionId);
-
-//     // 3️⃣ Call vendor API
-//     console.log("[purchaseDataPlan] Calling vendor API…");
-//     const vendorResponse = await fetch("https://datastationapi.com/api/data/", {
-//       method: "POST",
-//       headers: {
-//         "Content-Type": "application/json",
-//         Authorization: `Token ${token}`,
-//       },
-//       body: JSON.stringify({
-//         network: networkCode,
-//         mobile_number: phoneNumber,
-//         plan: planId,
-//         Ported_number: ported,
-//       }),
-//     });
-
-//     const vendorText = await vendorResponse.text();
-//     let vendorData: any = null;
-//     try {
-//       vendorData = JSON.parse(vendorText);
-//     } catch {
-//       console.error("[purchaseDataPlan] Vendor response not JSON:", vendorText);
-//     }
-
-//     console.log("[purchaseDataPlan] Vendor API response:", {
-//       status: vendorResponse.status,
-//       vendorData,
-//     });
-
-//     if (!vendorResponse.ok || !vendorData) {
-//       console.error("[purchaseDataPlan] Vendor purchase failed");
-//       // mark failed
-//       await supabase
-//         .from("transactions")
-//         .update({
-//           status: "failed",
-//           error_message: vendorData?.message || "Vendor API error",
-//           updated_at: new Date().toISOString(),
-//         })
-//         .eq("id", transactionId);
-
-//       // refund wallet
-//       await supabase.rpc("refund_wallet_balance", { user_id: userId, amount });
-
-//       return { success: false, message: "Vendor purchase failed" };
-//     }
-
-//     // 4️⃣ Update transaction (success/failure)
-//     const vendorTxId = vendorData?.transaction_id || null;
-//     const isSuccess = vendorData?.status?.toLowerCase() === "successful";
-
-//     console.log("[purchaseDataPlan] Updating transaction status:", {
-//       isSuccess,
-//       vendorTxId,
-//     });
-
-//     await supabase
-//       .from("transactions")
-//       .update({
-//         status: isSuccess ? "completed" : "failed",
-//         vendor_transaction_id: vendorTxId,
-//         vendor_response: vendorData,
-//         updated_at: new Date().toISOString(),
-//       })
-//       .eq("id", transactionId);
-
-//     if (!isSuccess) {
-//       console.error("[purchaseDataPlan] Vendor reported failure", vendorData);
-//       // refund wallet
-//       await supabase.rpc("refund_wallet_balance", { user_id: userId, amount });
-
-//       return { success: false, message: "Vendor reported failure" };
-//     }
-
-//     console.log("[purchaseDataPlan] Purchase completed successfully");
-//     return {
-//       success: true,
-//       message: "Data plan purchased successfully",
-//       transactionId,
-//       newBalance: wallet,
-//     };
-//   } catch (err) {
-//     console.error("[purchaseDataPlan] Unexpected error:", err);
-//     return {
-//       success: false,
-//       message: "Unexpected error occurred during purchase",
-//     };
-//   }
-// }
 
 export async function purchaseDataPlan(
   input: PurchaseDataPlanInput
@@ -286,6 +104,8 @@ export async function purchaseDataPlan(
     phoneNumber,
     planId,
     amount,
+    planSize,
+    duration,
     ported = true,
   } = input;
 
@@ -328,6 +148,8 @@ export async function purchaseDataPlan(
         network_code: networkCode,
         amount,
         phone_number: phoneNumber,
+        duration: duration,
+        data_size: planSize,
         status: "pending",
       })
       .select()

@@ -78,10 +78,17 @@ export default function SignInPage() {
               />
             </div>
           </div>
-
           {state.error && (
             <p className="text-red-400 text-sm mt-2">{state.error}</p>
           )}
+          <div className="flex justify-between items-center mt-1">
+            <Link
+              href="/forgot-password"
+              className="text-sm text-emerald-500 hover:text-emerald-400 hover:underline transition-colors"
+            >
+              Forgot password?
+            </Link>
+          </div>
 
           <div className="text-center">
             <Button

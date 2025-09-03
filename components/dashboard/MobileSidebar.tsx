@@ -4,6 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  YataLogoPlayful,
+  YataLogoBadge,
+  YataLogoMinimal,
+  YataLogo,
+} from "../logo/LogoOptions";
+
+import {
   Menu,
   X,
   Home,
@@ -81,11 +88,12 @@ export default function MobileSidebar() {
           <div className="flex justify-between items-center mb-10">
             <Link
               href="/dashboard"
-              className="text-2xl font-bold text-[var(--emerald-green)]"
               onClick={() => setOpen(false)}
+              className="flex items-center gap-2 text-2xl font-semibold"
             >
-              Loyatee
+              <YataLogo className="h-10 w-auto" />
             </Link>
+
             <button onClick={() => setOpen(false)}>
               <X className="h-6 w-6 text-white" />
             </button>
@@ -120,20 +128,25 @@ export default function MobileSidebar() {
           {bottomNav.map((item) => {
             const isActive = pathname === item.href;
             const isLogout = item.label === "Logout";
+
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={() => setOpen(false)}
                 className={cn(
-                  "flex items-center gap-4 px-4 py-2 rounded-lg transition",
+                  "flex items-center gap-4 px-4 py-2 rounded-lg transition relative",
                   isLogout
-                    ? "text-[var(--danger-color)] hover:bg-[var(--danger-bg)]"
+                    ? "text-red-500 hover:bg-red-500/10"
                     : isActive
-                    ? "bg-[var(--hover-bg)] text-[var(--text-primary)]"
+                    ? "bg-[var(--hover-bg)] text-[var(--emerald-green)]"
                     : "text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] hover:text-[var(--text-primary)]"
                 )}
               >
+                {/* Accent bar for active link (except logout) */}
+                {!isLogout && isActive && (
+                  <span className="absolute left-0 top-0 h-full w-1 bg-[var(--emerald-green)] rounded-r-lg" />
+                )}
                 {item.icon}
                 <span className="font-medium">{item.label}</span>
               </Link>
