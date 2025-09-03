@@ -1,14 +1,14 @@
 // app/auth/auth-code-error/page.tsx
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-export default function AuthCodeError() {
+function AuthCodeErrorContent() {
   const searchParams = useSearchParams();
   const reason = searchParams?.get("reason");
 
-  // Default values for unknown errors
   let title = "Verification Error";
   let message =
     "An error occurred during email verification. Please try again or contact support.";
@@ -42,5 +42,13 @@ export default function AuthCodeError() {
         </Link>
       </div>
     </div>
+  );
+}
+
+export default function AuthCodeError() {
+  return (
+    <Suspense fallback={<div className="text-white p-10">Loading…</div>}>
+      <AuthCodeErrorContent />
+    </Suspense>
   );
 }

@@ -12,6 +12,14 @@ const manrope = Manrope({
   display: "swap", // Ensures font swapping after loading
 });
 
+if (process.env.NODE_ENV === "production") {
+  // Silence logs in production
+  console.log = () => {};
+  console.debug = () => {};
+  console.warn = () => {};
+  // Keep console.error if you want errors to show
+}
+
 export const metadata: Metadata = {
   title: "Yata",
   description: "Buy cheap mobile data instantly in Nigeria",

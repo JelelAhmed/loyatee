@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import Button from "@/components/ui/Button";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signInWithPassword } from "@/app/actions/auth.actions";
 import { SignInState } from "@/types/auth";
 
-export default function SignInPage() {
+function SignInContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -112,5 +112,13 @@ export default function SignInPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={<div className="text-white">Loading...</div>}>
+      <SignInContent />
+    </Suspense>
   );
 }
