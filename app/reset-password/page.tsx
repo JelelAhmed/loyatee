@@ -1,18 +1,12 @@
+// app/reset-password/page.tsx
 import ResetPasswordClient from "@/components/auths/resetPasswordClient";
 
 export default function ResetPasswordPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ code?: string }>;
+  searchParams?: { code?: string };
 }) {
-  // You need to unwrap the promise
-  const getParams = async () => {
-    const params = await searchParams;
-    return <ResetPasswordClient code={params?.code} />;
-  };
-
-  // Since React Server Components can return a Promise, you can return directly
-  return getParams();
+  return <ResetPasswordClient code={searchParams?.code} />;
 }
 // "use client";
 
