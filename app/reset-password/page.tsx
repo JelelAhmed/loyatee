@@ -1,11 +1,12 @@
-// app/reset-password/page.tsx
 import ResetPasswordClient from "@/components/auths/resetPasswordClient";
+
+interface ResetPasswordPageProps {
+  searchParams: { code?: string };
+}
 
 export default function ResetPasswordPage({
   searchParams,
-}: {
-  searchParams?: { code?: string };
-}) {
+}: ResetPasswordPageProps) {
   return <ResetPasswordClient code={searchParams?.code} />;
 }
 // "use client";
