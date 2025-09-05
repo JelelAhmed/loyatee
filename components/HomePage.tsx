@@ -171,9 +171,15 @@ export default function HomePage({ plans, error }: HomePageProps) {
           <h2 className="text-3xl md:text-4xl font-bold mb-4 animate-fade-in">
             Why Choose{" "}
             <span>
-              <YataLogoMinimal className="inline-block h-[1.6em] w-auto align-baseline -mb-3 -mr-2" />
+              <YataLogoMinimal className="inline-block h-[1.2em] w-auto align-baseline -mb-2 -mr-1 md:-mb-1" />
             </span>
           </h2>
+          {/* <h2 className="text-3xl md:text-4xl font-bold mb-4 animate-fade-in">
+            Why Choose{" "}
+            <span>
+              <YataLogoMinimal className="inline-block h-[1.6em] w-auto align-baseline -mb-3 -mr-2 md:-mb-1 md:-mb-1" />
+            </span>
+          </h2> */}
           <p className="text-gray-400 text-lg max-w-2xl mx-auto">
             Enjoy fast, secure, and affordable mobile data with unmatched
             support.
