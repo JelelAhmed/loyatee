@@ -1,6 +1,7 @@
 export type Transaction = {
   id: string;
   user_id: string;
+  user_email: string;
   type: string;
   amount: number;
   status: string;
@@ -12,6 +13,7 @@ export type Transaction = {
   created_at: string;
   network: string;
   network_code: number;
+  funding_id: string;
   date: string;
 };
 

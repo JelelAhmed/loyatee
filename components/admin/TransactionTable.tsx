@@ -1,53 +1,87 @@
-interface Transaction {
-  user: string;
-  network: string;
+// /components/admin/TransactionTable.tsx
+interface DisplayTransaction {
+  id: string;
+  user_email?: string;
+  user_id: string;
+  type: "data_purchase" | "wallet_funding";
   amount: string;
-  date: string;
   status: string;
+  network_name?: string;
+  data_size?: string;
+  duration?: string;
+  funding_id?: string;
+  phone_number?: string;
 }
 
 interface TransactionTableProps {
-  transactions: Transaction[];
+  transactions: DisplayTransaction[];
+  activityType: "data_purchase" | "wallet_funding";
 }
 
 export default function TransactionTable({
   transactions,
+  activityType,
 }: TransactionTableProps) {
   return (
     <div className="hidden sm:block">
       <table className="w-full text-sm text-left text-[var(--text-secondary)]">
-        <thead className="text-xs text-[var(--text-primary)] uppercase bg-white/5">
+        <thead className="text-xs text-[var(--text-primary)] uppercase bg-white/5 sticky top-0 z-20">
           <tr>
-            {["User", "Network", "Amount", "Date", "Status"].map((h) => (
-              <th key={h} className="px-6 py-3" scope="col">
+            {(activityType === "data_purchase"
+              ? [
+                  "User Email",
+                  "Phone",
+                  "Network",
+                  "Amount",
+                  "Data Size",
+                  "Duration",
+                  "Status",
+                ]
+              : ["User Email", "Phone", "Amount", "Funding ID", "Status"]
+            ).map((h) => (
+              <th key={h} className="px-6 py-3">
                 {h}
               </th>
             ))}
           </tr>
         </thead>
+
         <tbody>
-          {transactions.map((transaction, i) => (
+          {transactions.map((t) => (
             <tr
-              key={i}
+              key={t.id}
               className="border-b border-white/10 hover:bg-white/10 transition-colors"
             >
               <td className="px-6 py-4 font-medium text-[var(--text-primary)] whitespace-nowrap">
-                {transaction.user}
+                {t.user_email ?? "-"}
               </td>
-              <td className="px-6 py-4">{transaction.network}</td>
-              <td className="px-6 py-4">{transaction.amount}</td>
-              <td className="px-6 py-4">{transaction.date}</td>
+              <td className="px-6 py-4">{t.phone_number ?? "-"}</td>
+
+              {activityType === "data_purchase" ? (
+                <>
+                  <td className="px-6 py-4">{t.network_name}</td>
+                  <td className="px-6 py-4">₦{t.amount}</td>
+                  <td className="px-6 py-4">{t.data_size}</td>
+                  <td className="px-6 py-4">{t.duration}</td>
+                </>
+              ) : (
+                <>
+                  <td className="px-6 py-4">₦{t.amount}</td>
+                  <td className="px-6 py-4">{t.funding_id}</td>
+                </>
+              )}
+
               <td className="px-6 py-4 text-center">
                 <span
-                  className={`relative inline-block px-3 py-1 font-medium text-xs rounded-full capitalize ${
-                    transaction.status === "Completed"
+                  className={`inline-block px-3 py-1 font-medium text-xs rounded-full capitalize ${
+                    t.status.toLowerCase() === "completed"
                       ? "text-emerald-400 bg-emerald-500/20"
-                      : transaction.status === "Pending"
+                      : t.status.toLowerCase() === "pending"
                       ? "text-amber-400 bg-amber-500/20"
                       : "text-red-400 bg-red-500/20"
                   }`}
                 >
-                  {transaction.status}
+                  {t.status}
                 </span>
               </td>
             </tr>

@@ -1,18 +1,15 @@
 import { updateSession } from "./lib/supabase/middleware";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { createSupabaseServerClient } from "./lib/supabase/server";
 
 export async function middleware(request: NextRequest) {
-  // Call updateSession to refresh auth token and get user
-  const { response, user, session } = await updateSession(request);
+  const { response, user } = await updateSession(request);
 
   // Prevent caching for protected routes
   response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
 
-  // console.log("🪵 Middleware Debug — Path:", request.nextUrl.pathname);
-  // console.log("🪵 Middleware Debug — User:", user);
-  // console.log("🪵 Middleware Debug — Session:", session);
-  // console.log("🪵 Middleware Debug — Cookies:", request.cookies.getAll());
+  const pathname = request.nextUrl.pathname;
 
   const publicPaths = [
     "/",
@@ -24,34 +21,91 @@ export async function middleware(request: NextRequest) {
     "/reset-sent",
     "/auth/confirm",
     "/api/webhook/paystack",
+    "/admin/login",
   ];
   const authPaths = ["/signin", "/signup"];
 
   const isPublic = publicPaths.some(
-    (path) =>
-      request.nextUrl.pathname === path ||
-      request.nextUrl.pathname.startsWith(path + "/")
+    (path) => pathname === path || pathname.startsWith(path + "/")
   );
   const isAuthPath = authPaths.some(
-    (path) =>
-      request.nextUrl.pathname === path ||
-      request.nextUrl.pathname.startsWith(path + "/")
+    (path) => pathname === path || pathname.startsWith(path + "/")
   );
 
-  // Redirect authenticated users away from auth pages
+  // Redirect authenticated users away from user auth pages
   if (user && isAuthPath) {
+    const supabase = await createSupabaseServerClient();
+    const { data: userRecord } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    // ✅ only allow non-admins here
+    if (userRecord?.role === "admin") {
+      // If admin tries /signin, force logout
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/admin/login";
+      return NextResponse.redirect(redirectUrl);
+    }
+
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/dashboard";
-
     return NextResponse.redirect(redirectUrl);
   }
 
-  // Protect private routes
+  // 🔒 Protect /admin/*
+  if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
+    if (!user) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/admin/login";
+      redirectUrl.searchParams.set("redirect", pathname);
+      return NextResponse.redirect(redirectUrl);
+    }
+
+    const supabase = await createSupabaseServerClient();
+    const { data: userRecord } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (!userRecord || userRecord.role !== "admin") {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/dashboard";
+      return NextResponse.redirect(redirectUrl);
+    }
+  }
+
+  // 🔒 Protect /dashboard/*
+  if (pathname.startsWith("/dashboard")) {
+    if (!user) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/signin";
+      redirectUrl.searchParams.set("redirect", pathname);
+      return NextResponse.redirect(redirectUrl);
+    }
+
+    const supabase = await createSupabaseServerClient();
+    const { data: userRecord } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    // ✅ if admin tries to hit /dashboard, bounce them to /admin
+    if (userRecord?.role === "admin") {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/admin";
+      return NextResponse.redirect(redirectUrl);
+    }
+  }
+
+  // Protect all other private routes
   if (!user && !isPublic) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/signin";
-    redirectUrl.searchParams.set("redirect", request.nextUrl.pathname);
-
+    redirectUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(redirectUrl);
   }
 

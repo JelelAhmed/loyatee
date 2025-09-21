@@ -53,3 +53,12 @@ export function formatFundingType(type: string): string {
       return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   }
 }
+
+export function formatCurrency(amount: number | string) {
+  return Number(amount).toLocaleString("en-NG", {
+    style: "currency",
+    currency: "NGN",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
