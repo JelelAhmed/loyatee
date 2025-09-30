@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import {
   PurchaseDataPlanInput,
@@ -7,8 +8,7 @@ import {
   VendorResponse,
 } from "@/types/transactions";
 import { mapVendorErrorToUserMessage } from "@/lib/utils";
-import { calculateFinalPrice } from "@/lib/datastation/pricing";
-import { NETWORK_MAPPING } from "@/lib/datastation/constants";
+import { fetchVendorPlans } from "./vendor.actions";
 
 type DataPlan = {
   id: string;
@@ -17,80 +17,124 @@ type DataPlan = {
   plan_type: string;
   plan_network: string;
   month_validate: string;
+  enabled: boolean;
   plan: string;
   plan_amount: string; // API returns as string, e.g., "780.0"
   final_price: number; // Price with your fee
 };
 
-export async function getDataPlans() {
+export async function getDataPlansWithOverrides(): Promise<{
+  plans: DataPlan[];
+  error: string | null;
+}> {
   try {
-    const token = process.env.DATASTATION_TOKEN;
-    if (!token) throw new Error("DATASTATION_TOKEN is not set");
+    const vendorPlans = await fetchVendorPlans();
 
-    const response = await fetch("https://datastationapi.com/api/user", {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Token ${token}`,
-      },
-    });
+    const { data: overrides, error: overrideError } = await supabaseAdmin
+      .from("plan_overrides")
+      .select("dataplan_id, base_markup, enabled");
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to fetch plans: ${response.status} ${errorText}`);
+    if (overrideError) {
+      console.error("[getDataPlansWithOverrides] error:", overrideError);
+      return { plans: [], error: "An error occured. Please try again" };
     }
 
-    const data = await response.json().catch(async () => {
-      const rawText = await response.text();
-      throw new Error(`Invalid JSON response: ${rawText}`);
+    const updatedPlans: DataPlan[] = vendorPlans.map((plan) => {
+      const vendorCost = Number(plan.plan_amount);
+      const override = overrides?.find(
+        (o) => o.dataplan_id === plan.dataplan_id
+      );
+
+      const base_markup = override?.base_markup ?? 50; // default minimum
+      const enabled = override?.enabled ?? true;
+
+      return {
+        ...plan,
+        base_markup,
+        enabled,
+        final_price: enabled
+          ? vendorCost + Math.max(base_markup, 10)
+          : vendorCost,
+      };
     });
 
-    const dataplans = data.Dataplans || {};
-    const discountMap = data.percentage || {};
-    const plans: DataPlan[] = [];
-    const seenIds = new Set<string>();
-
-    Object.keys(dataplans).forEach((networkKey) => {
-      const planGroups = dataplans[networkKey] || {};
-      const rawPlans = planGroups["ALL"] || [];
-
-      rawPlans.forEach((plan: DataPlan) => {
-        const dedupeKey = plan.dataplan_id || plan.id;
-        if (seenIds.has(dedupeKey)) return;
-
-        const networkName =
-          NETWORK_MAPPING[plan.network.toString()] ||
-          `Unknown (${plan.network})`;
-
-        const planAmount = parseFloat(plan.plan_amount);
-
-        const finalPrice = calculateFinalPrice(
-          planAmount,
-          networkName,
-          discountMap
-        );
-
-        plans.push({
-          ...plan,
-          dataplan_id: dedupeKey,
-          plan_network: networkName,
-          plan_type: plan.plan_type?.trim() || "UNKNOWN",
-          plan_amount: plan.plan_amount,
-          final_price: finalPrice,
-        });
-
-        seenIds.add(dedupeKey);
-      });
-    });
-
-    plans.sort((a, b) => a.final_price - b.final_price);
-
-    return { plans, error: null };
+    return { plans: updatedPlans, error: null };
   } catch (err) {
-    console.error("getDataPlans error:", err);
+    console.error("[getDataPlansWithOverrides] Unexpected error:", err);
     return {
       plans: [],
       error: err instanceof Error ? err.message : "Failed to fetch plans",
+    };
+  }
+}
+
+export async function getCustomerDataPlans() {
+  const { plans, error } = await getDataPlansWithOverrides();
+  if (error) return { plans: [], error };
+
+  // filter only enabled plans
+  const enabledPlans = plans.filter((p) => p.enabled);
+
+  return { plans: enabledPlans, error: null };
+}
+
+/**
+ * Update or insert a plan override markup.
+ * @param dataplan_id The vendor's plan identifier
+ * @param base_markup The extra amount to add on top of vendor price
+ */
+export async function updatePlanMarkup(
+  dataplan_id: string,
+  base_markup: number
+) {
+  try {
+    const { error } = await supabaseAdmin.from("plan_overrides").upsert(
+      {
+        dataplan_id,
+        base_markup,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "dataplan_id" }
+    );
+
+    if (error) throw new Error(error.message);
+
+    // Revalidate affected paths
+    revalidatePath("/dashboard/buy-data"); // Customer-facing page
+    revalidatePath("/admin/data-plans"); // Admin page
+
+    return { success: true, message: "Markup updated successfully" };
+  } catch (err) {
+    console.error("[updatePlanMarkup] Error:", err);
+    return {
+      success: false,
+      message: err instanceof Error ? err.message : "Failed to update markup",
+    };
+  }
+}
+
+export async function togglePlanEnabled(dataplan_id: string, enabled: boolean) {
+  try {
+    const { error } = await supabaseAdmin.from("plan_overrides").upsert(
+      {
+        dataplan_id,
+        enabled,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "dataplan_id" }
+    );
+
+    if (error) throw new Error(error.message);
+
+    return {
+      success: true,
+      message: `Plan ${enabled ? "enabled" : "disabled"} successfully`,
+    };
+  } catch (err) {
+    console.error("[togglePlanEnabled] Error:", err);
+    return {
+      success: false,
+      message: err instanceof Error ? err.message : "Failed to toggle plan",
     };
   }
 }

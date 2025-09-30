@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { getDataPlans, purchaseDataPlan } from "@/app/actions/data.actions";
+import {
+  getCustomerDataPlans,
+  purchaseDataPlan,
+} from "@/app/actions/data.actions";
 import { CreateSupabaseClient } from "@/lib/supabase/client";
 import { CheckCircle2, Loader2, Pencil } from "lucide-react";
 import { XCircle, ChevronRight, ChevronLeft } from "lucide-react";
@@ -30,7 +33,7 @@ export default function DataPlansPage() {
   // fetch plans + transactions
   useEffect(() => {
     async function fetchData() {
-      const { plans, error } = await getDataPlans();
+      const { plans, error } = await getCustomerDataPlans();
       setPlans(plans);
       setError(error);
 

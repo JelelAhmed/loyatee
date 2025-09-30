@@ -33,6 +33,8 @@ export default function RootLayout({
   return (
     <html lang="en" className={manrope.variable}>
       <body
+        lang="en"
+        suppressHydrationWarning
         className={`bg-[var(--navy-blue)] text-[var(--text-primary)] ${manrope.className}`}
       >
         <LayoutWrapper>{children}</LayoutWrapper>
