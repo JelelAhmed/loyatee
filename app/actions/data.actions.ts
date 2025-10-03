@@ -8,6 +8,7 @@ import {
   VendorResponse,
 } from "@/types/transactions";
 import { mapVendorErrorToUserMessage } from "@/lib/utils";
+
 import { fetchVendorPlans } from "./vendor.actions";
 
 type DataPlan = {
@@ -139,51 +140,255 @@ export async function togglePlanEnabled(dataplan_id: string, enabled: boolean) {
   }
 }
 
+// export async function purchaseDataPlan(
+//   input: PurchaseDataPlanInput
+// ): Promise<PurchaseResult> {
+//   const {
+//     userId,
+//     networkCode,
+//     phoneNumber,
+//     planId,
+//     amount,
+//     planSize,
+//     duration,
+//     ported = true,
+//   } = input;
+
+//   const supabase = supabaseAdmin;
+//   const token = process.env.DATASTATION_TOKEN;
+
+//   if (!token) {
+//     console.error("[purchaseDataPlan] Missing DATASTATION_TOKEN");
+//     return { success: false, message: "DATASTATION_TOKEN not set" };
+//   }
+
+//   let transactionId: string | undefined;
+
+//   try {
+//     // 1️⃣ Deduct balance
+//     console.log("[purchaseDataPlan] Attempting wallet deduction", {
+//       userId,
+//       amount,
+//     });
+//     const { data: newBalance, error: deductError } = await supabase.rpc(
+//       "deduct_user_wallet",
+//       { user_id: userId, amount }
+//     );
+//     console.log("[purchaseDataPlan] Wallet deduction result:", {
+//       newBalance,
+//       deductError,
+//     });
+
+//     if (deductError) {
+//       return { success: false, message: "Insufficient wallet balance" };
+//     }
+
+//     // 2️⃣ Insert pending transaction
+//     console.log("[purchaseDataPlan] Inserting pending transaction…");
+//     const { data: tx, error: insertError } = await supabase
+//       .from("transactions")
+//       .insert({
+//         user_id: userId,
+//         type: "data_purchase",
+//         network_code: networkCode,
+//         amount,
+//         phone_number: phoneNumber,
+//         duration: duration,
+//         data_size: planSize,
+//         status: "pending",
+//       })
+//       .select()
+//       .single();
+
+//     console.log("[purchaseDataPlan] Transaction insert result:", {
+//       tx,
+//       insertError,
+//     });
+
+//     if (insertError || !tx) {
+//       console.error(
+//         "[purchaseDataPlan] Insert transaction failed:",
+//         insertError
+//       );
+//       await supabase.rpc("refund_user_wallet", { user_id: userId, amount });
+//       return { success: false, message: "Failed to create transaction" };
+//     }
+
+//     transactionId = tx.id;
+//     console.log("[purchaseDataPlan] Created transaction:", transactionId);
+
+//     // 3️⃣ Call vendor API
+//     console.log("[purchaseDataPlan] Sending request to vendor API…", {
+//       networkCode,
+//       phoneNumber,
+//       planId,
+//     });
+
+//     let vendorData: VendorResponse | null = null;
+//     let vendorResponse: Response | undefined;
+
+//     try {
+//       vendorResponse = await fetch("https://datastationapi.com/api/data/", {
+//         method: "POST",
+//         headers: {
+//           "Content-Type": "application/json",
+//           Authorization: `Token ${token}`,
+//         },
+//         body: JSON.stringify({
+//           network: networkCode,
+//           mobile_number: phoneNumber,
+//           plan: planId,
+//           Ported_number: ported,
+//         }),
+//       });
+
+//       const text = await vendorResponse.text();
+//       try {
+//         vendorData = JSON.parse(text) as VendorResponse;
+//       } catch {
+//         console.error("[purchaseDataPlan] Vendor returned non-JSON:", text);
+//       }
+//     } catch (vendorErr) {
+//       console.error("[purchaseDataPlan] Vendor request exception:", vendorErr);
+//     }
+
+//     console.log("[purchaseDataPlan] Vendor API response:", {
+//       status: vendorResponse?.status,
+//       vendorData,
+//     });
+
+//     if (!vendorResponse?.ok || !vendorData) {
+//       const userMessage = mapVendorErrorToUserMessage(vendorData);
+
+//       await supabase
+//         .from("transactions")
+//         .update({
+//           status: "failed",
+//           error_message:
+//             vendorData?.error?.[0] || vendorData?.message || "Vendor API error",
+//           vendor_response: vendorData,
+//           updated_at: new Date().toISOString(),
+//         })
+//         .eq("id", transactionId);
+
+//       await supabase.rpc("refund_user_wallet", { user_id: userId, amount });
+
+//       return { success: false, message: userMessage };
+//     }
+
+//     // 4️⃣ Update transaction
+//     const vendorTxId = vendorData.transaction_id || null;
+//     const isSuccess =
+//       vendorData.status?.toLowerCase() === "successful" ||
+//       vendorData.Status?.toLowerCase() === "successful";
+
+//     console.log("[purchaseDataPlan] Updating transaction with vendor result:", {
+//       vendorTxId,
+//       isSuccess,
+//     });
+
+//     const { data: updateResult, error: updateError } = await supabase
+//       .from("transactions")
+//       .update({
+//         status: isSuccess ? "completed" : "failed",
+//         vendor_transaction_id: vendorTxId,
+//         vendor_response: vendorData,
+//         updated_at: new Date().toISOString(),
+//       })
+//       .eq("id", transactionId);
+
+//     console.log("[purchaseDataPlan] Transaction update result:", {
+//       updateResult,
+//       updateError,
+//     });
+//     if (!isSuccess) {
+//       const errorMsg =
+//         vendorData.error?.[0] ||
+//         vendorData.message ||
+//         "Vendor reported failure";
+
+//       console.warn("[purchaseDataPlan] Vendor reported failure. Refunding…");
+//       await supabase.rpc("refund_user_wallet", { user_id: userId, amount });
+
+//       return { success: false, message: errorMsg };
+//     }
+
+//     console.log("[purchaseDataPlan] Purchase successful 🎉", {
+//       transactionId,
+//       newBalance,
+//     });
+
+//     return {
+//       success: true,
+//       message: "Data plan purchased successfully",
+//       transactionId,
+//       newBalance,
+//     };
+//   } catch (err) {
+//     console.error("[purchaseDataPlan] Unexpected error:", err);
+
+//     if (transactionId) {
+//       await supabase
+//         .from("transactions")
+//         .update({
+//           status: "failed",
+//           error_message: "Unexpected server error",
+//           updated_at: new Date().toISOString(),
+//         })
+//         .eq("id", transactionId);
+
+//       await supabase.rpc("refund_user_wallet", { user_id: userId, amount });
+//     }
+
+//     return {
+//       success: false,
+//       message: "Unexpected error occurred during purchase",
+//     };
+//   }
+// }
+
 export async function purchaseDataPlan(
   input: PurchaseDataPlanInput
 ): Promise<PurchaseResult> {
-  const {
-    userId,
-    networkCode,
-    phoneNumber,
-    planId,
-    amount,
-    planSize,
-    duration,
-    ported = true,
-  } = input;
+  const { userId, networkCode, phoneNumber, planId, ported = true } = input;
 
   const supabase = supabaseAdmin;
   const token = process.env.DATASTATION_TOKEN;
-
   if (!token) {
-    console.error("[purchaseDataPlan] Missing DATASTATION_TOKEN");
     return { success: false, message: "DATASTATION_TOKEN not set" };
   }
 
   let transactionId: string | undefined;
 
   try {
-    // 1️⃣ Deduct balance
-    console.log("[purchaseDataPlan] Attempting wallet deduction", {
-      userId,
-      amount,
-    });
+    // 🔍 Step 1: Fetch authoritative plan info
+    const { plans, error } = await getDataPlansWithOverrides();
+    if (error || !plans) {
+      return { success: false, message: "Could not fetch plans" };
+    }
+
+    const plan = plans.find((p) => p.dataplan_id === planId);
+    if (!plan) {
+      return { success: false, message: "Invalid plan selected" };
+    }
+    if (!plan.enabled) {
+      return { success: false, message: "This plan is currently disabled" };
+    }
+
+    const amount = plan.final_price; // ✅ use server-side amount
+    const duration = plan.month_validate;
+    const planSize = plan.plan;
+
+    // 💸 Step 2: Deduct balance
     const { data: newBalance, error: deductError } = await supabase.rpc(
       "deduct_user_wallet",
       { user_id: userId, amount }
     );
-    console.log("[purchaseDataPlan] Wallet deduction result:", {
-      newBalance,
-      deductError,
-    });
-
     if (deductError) {
       return { success: false, message: "Insufficient wallet balance" };
     }
 
-    // 2️⃣ Insert pending transaction
-    console.log("[purchaseDataPlan] Inserting pending transaction…");
+    // 📝 Step 3: Insert pending transaction
     const { data: tx, error: insertError } = await supabase
       .from("transactions")
       .insert({
@@ -192,37 +397,21 @@ export async function purchaseDataPlan(
         network_code: networkCode,
         amount,
         phone_number: phoneNumber,
-        duration: duration,
+        duration,
         data_size: planSize,
         status: "pending",
       })
       .select()
       .single();
 
-    console.log("[purchaseDataPlan] Transaction insert result:", {
-      tx,
-      insertError,
-    });
-
     if (insertError || !tx) {
-      console.error(
-        "[purchaseDataPlan] Insert transaction failed:",
-        insertError
-      );
       await supabase.rpc("refund_user_wallet", { user_id: userId, amount });
       return { success: false, message: "Failed to create transaction" };
     }
 
     transactionId = tx.id;
-    console.log("[purchaseDataPlan] Created transaction:", transactionId);
 
-    // 3️⃣ Call vendor API
-    console.log("[purchaseDataPlan] Sending request to vendor API…", {
-      networkCode,
-      phoneNumber,
-      planId,
-    });
-
+    // 🌐 Step 4: Call vendor API
     let vendorData: VendorResponse | null = null;
     let vendorResponse: Response | undefined;
 
@@ -243,22 +432,15 @@ export async function purchaseDataPlan(
 
       const text = await vendorResponse.text();
       try {
-        vendorData = JSON.parse(text) as VendorResponse;
+        vendorData = JSON.parse(text);
       } catch {
         console.error("[purchaseDataPlan] Vendor returned non-JSON:", text);
       }
-    } catch (vendorErr) {
-      console.error("[purchaseDataPlan] Vendor request exception:", vendorErr);
+    } catch (err) {
+      console.error("[purchaseDataPlan] Vendor request exception:", err);
     }
 
-    console.log("[purchaseDataPlan] Vendor API response:", {
-      status: vendorResponse?.status,
-      vendorData,
-    });
-
     if (!vendorResponse?.ok || !vendorData) {
-      const userMessage = mapVendorErrorToUserMessage(vendorData);
-
       await supabase
         .from("transactions")
         .update({
@@ -271,22 +453,16 @@ export async function purchaseDataPlan(
         .eq("id", transactionId);
 
       await supabase.rpc("refund_user_wallet", { user_id: userId, amount });
-
-      return { success: false, message: userMessage };
+      return { success: false, message: "Vendor request failed" };
     }
 
-    // 4️⃣ Update transaction
+    // 🔄 Step 5: Update transaction with vendor result
     const vendorTxId = vendorData.transaction_id || null;
     const isSuccess =
       vendorData.status?.toLowerCase() === "successful" ||
       vendorData.Status?.toLowerCase() === "successful";
 
-    console.log("[purchaseDataPlan] Updating transaction with vendor result:", {
-      vendorTxId,
-      isSuccess,
-    });
-
-    const { data: updateResult, error: updateError } = await supabase
+    await supabase
       .from("transactions")
       .update({
         status: isSuccess ? "completed" : "failed",
@@ -296,26 +472,15 @@ export async function purchaseDataPlan(
       })
       .eq("id", transactionId);
 
-    console.log("[purchaseDataPlan] Transaction update result:", {
-      updateResult,
-      updateError,
-    });
     if (!isSuccess) {
       const errorMsg =
         vendorData.error?.[0] ||
         vendorData.message ||
         "Vendor reported failure";
 
-      console.warn("[purchaseDataPlan] Vendor reported failure. Refunding…");
       await supabase.rpc("refund_user_wallet", { user_id: userId, amount });
-
       return { success: false, message: errorMsg };
     }
-
-    console.log("[purchaseDataPlan] Purchase successful 🎉", {
-      transactionId,
-      newBalance,
-    });
 
     return {
       success: true,
@@ -325,7 +490,6 @@ export async function purchaseDataPlan(
     };
   } catch (err) {
     console.error("[purchaseDataPlan] Unexpected error:", err);
-
     if (transactionId) {
       await supabase
         .from("transactions")
@@ -335,13 +499,7 @@ export async function purchaseDataPlan(
           updated_at: new Date().toISOString(),
         })
         .eq("id", transactionId);
-
-      await supabase.rpc("refund_user_wallet", { user_id: userId, amount });
     }
-
-    return {
-      success: false,
-      message: "Unexpected error occurred during purchase",
-    };
+    return { success: false, message: "Unexpected error occurred" };
   }
 }

@@ -9,9 +9,14 @@ import {
 import { DataPlan } from "@/types/dataPlans";
 import { usePagination } from "@/hooks/usePagination";
 import PaginationControls from "@/components/ui/paginationControls";
-import { Pencil, Save, Loader2, X } from "lucide-react";
+import { Pencil, Save, Loader2, X, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { CreateSupabaseClient } from "@/lib/supabase/client";
+import {
+  extractDataSize,
+  categorizeDuration,
+  extractDurationDays,
+} from "@/lib/utils";
 
 export default function AdminDataPlansPage() {
   const [plans, setPlans] = useState<DataPlan[]>([]);
@@ -21,10 +26,15 @@ export default function AdminDataPlansPage() {
   const [statusFilter, setStatusFilter] = useState<
     "all" | "enabled" | "disabled"
   >("all");
+  const [durationFilter, setDurationFilter] = useState<
+    "all" | "daily" | "weekly" | "monthly"
+  >("all");
 
   const [editPlanId, setEditPlanId] = useState<string | null>(null);
   const [editMarkup, setEditMarkup] = useState<string>("");
   const [saving, setSaving] = useState<string | null>(null);
+
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   // ✅ Fetch vendor plans + merge overrides
   useEffect(() => {
@@ -84,7 +94,7 @@ export default function AdminDataPlansPage() {
   // Reset pagination on network change
   useEffect(() => {
     resetPlanPage();
-  }, [selectedNetwork]);
+  }, [selectedNetwork, durationFilter]);
 
   const networks = useMemo(
     () => Array.from(new Set(plans.map((p) => p.plan_network))),
@@ -116,8 +126,20 @@ export default function AdminDataPlansPage() {
           ? p.enabled
           : !p.enabled
       )
-      .sort((a, b) => a.final_price - b.final_price);
-  }, [plans, selectedNetwork, selectedPlanType, statusFilter]);
+      .filter((p) =>
+        durationFilter === "all"
+          ? true
+          : categorizeDuration(p.month_validate) === durationFilter
+      )
+      .sort((a, b) => {
+        const durationA = extractDurationDays(a.month_validate);
+        const durationB = extractDurationDays(b.month_validate);
+
+        if (durationA !== durationB) return durationA - durationB;
+
+        return extractDataSize(a.plan) - extractDataSize(b.plan);
+      });
+  }, [plans, selectedNetwork, selectedPlanType, statusFilter, durationFilter]);
 
   async function handleSaveMarkup(dataplan_id: string) {
     const newMarkup = parseFloat(editMarkup);
@@ -224,50 +246,50 @@ export default function AdminDataPlansPage() {
               </div>
             </div>
 
-            {/* Plan Type Filter */}
-            {selectedNetwork && (
-              <div>
-                {/* Desktop Select */}
-                <div className="hidden md:block">
-                  <label className="block text-sm text-gray-400 mb-1">
-                    Select Plan Type
-                  </label>
-                  <select
-                    value={selectedPlanType}
-                    onChange={(e) => setSelectedPlanType(e.target.value)}
-                    className="w-full p-2 rounded-lg bg-[#0d0f1a] text-white border border-gray-700"
-                  >
-                    {planTypes.map((t) => (
-                      <option key={t} value={t}>
-                        {t}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Mobile Pills */}
-                <div className="flex gap-2 overflow-x-auto pb-2 md:hidden">
-                  {planTypes.map((t) => (
-                    <button
-                      key={t}
-                      onClick={() => setSelectedPlanType(t)}
-                      className={`px-3 py-1 rounded-full text-sm ${
-                        selectedPlanType === t
-                          ? "bg-emerald-500 text-black font-semibold"
-                          : "bg-gray-800 text-gray-300"
-                      }`}
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Status Filter */}
+            {/* Duration Filter */}
             <div>
-              {/* Desktop */}
-              <div className="hidden md:block">
+              <label className="block text-sm text-gray-400 mb-1">
+                Duration
+              </label>
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {(["all", "daily", "weekly", "monthly"] as const).map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => setDurationFilter(d)}
+                    className={`px-3 py-1 rounded-full text-sm ${
+                      durationFilter === d
+                        ? "bg-emerald-500 text-black font-semibold"
+                        : "bg-gray-800 text-gray-300"
+                    }`}
+                  >
+                    {d[0].toUpperCase() + d.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Desktop: Plan Type + Status Filters */}
+            <div className="hidden md:flex gap-6">
+              {/* Plan Type */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">
+                  Select Plan Type
+                </label>
+                <select
+                  value={selectedPlanType}
+                  onChange={(e) => setSelectedPlanType(e.target.value)}
+                  className="w-full p-2 rounded-lg bg-[#0d0f1a] text-white border border-gray-700"
+                >
+                  {planTypes.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Status */}
+              <div>
                 <label className="block text-sm text-gray-400 mb-1">
                   Plan Status
                 </label>
@@ -285,28 +307,72 @@ export default function AdminDataPlansPage() {
                   <option value="disabled">Disabled Only</option>
                 </select>
               </div>
-
-              {/* Mobile Pills */}
-              <div className="flex gap-2 overflow-x-auto pb-2 md:hidden">
-                {(["all", "enabled", "disabled"] as const).map((status) => (
-                  <button
-                    key={status}
-                    onClick={() => setStatusFilter(status)}
-                    className={`px-3 py-1 rounded-full text-sm ${
-                      statusFilter === status
-                        ? "bg-emerald-500 text-black font-semibold"
-                        : "bg-gray-800 text-gray-300"
-                    }`}
-                  >
-                    {status === "all"
-                      ? "All"
-                      : status === "enabled"
-                      ? "Enabled"
-                      : "Disabled"}
-                  </button>
-                ))}
-              </div>
             </div>
+
+            {/* Mobile: More Filters Button + Clear Filters */}
+            <div className="md:hidden flex gap-2">
+              <button
+                onClick={() => setMobileFiltersOpen((prev) => !prev)}
+                className="flex items-center gap-2 px-3 py-2 bg-gray-800 text-gray-200 rounded-lg"
+              >
+                <SlidersHorizontal className="w-4 h-4" />
+                More Filters
+              </button>
+
+              {/* Clear Filters Pill */}
+              <button
+                onClick={() => {
+                  setSelectedPlanType("");
+                  setStatusFilter("all");
+                  setDurationFilter("all");
+                }}
+                className="px-3 py-2 rounded-lg bg-gray-700 text-gray-200 text-sm"
+              >
+                Show All
+              </button>
+            </div>
+
+            {mobileFiltersOpen && (
+              <div className="mt-3 space-y-4 bg-gray-800 p-4 rounded-lg border border-gray-700">
+                {/* Plan Type */}
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">
+                    Plan Type
+                  </label>
+                  <select
+                    value={selectedPlanType}
+                    onChange={(e) => setSelectedPlanType(e.target.value)}
+                    className="w-full p-2 rounded-lg bg-[#0d0f1a] text-white border border-gray-700"
+                  >
+                    {planTypes.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Status */}
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">
+                    Plan Status
+                  </label>
+                  <select
+                    value={statusFilter}
+                    onChange={(e) =>
+                      setStatusFilter(
+                        e.target.value as "all" | "enabled" | "disabled"
+                      )
+                    }
+                    className="w-full p-2 rounded-lg bg-[#0d0f1a] text-white border border-gray-700"
+                  >
+                    <option value="all">All</option>
+                    <option value="enabled">Enabled Only</option>
+                    <option value="disabled">Disabled Only</option>
+                  </select>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Plans Grid */}
@@ -320,71 +386,60 @@ export default function AdminDataPlansPage() {
                       return (
                         <div
                           key={plan.dataplan_id}
-                          className="p-4 rounded-xl shadow-sm bg-gray-800 border border-gray-700"
+                          className="p-4 rounded-xl shadow-sm bg-gray-800 border border-gray-700 hover:shadow-md transition"
                         >
-                          <div className="flex justify-between items-center mb-2">
+                          <div className="flex justify-between items-center mb-3">
                             <h3 className="font-semibold text-base">
-                              {plan.plan} ({plan.plan_type})
+                              {plan.plan}{" "}
+                              <span className="text-gray-400">
+                                ({plan.plan_type})
+                              </span>
                             </h3>
 
-                            <div className="flex items-center gap-2">
-                              {/* Enable/Disable toggle */}
-                              <button
-                                onClick={async () => {
-                                  const result = await togglePlanEnabled(
-                                    plan.dataplan_id,
-                                    !plan.enabled
+                            {/* Enable/Disable Badge */}
+                            <button
+                              onClick={async () => {
+                                const result = await togglePlanEnabled(
+                                  plan.dataplan_id,
+                                  !plan.enabled
+                                );
+                                if (result.success) {
+                                  setPlans((prev) =>
+                                    prev.map((p) =>
+                                      p.dataplan_id === plan.dataplan_id
+                                        ? { ...p, enabled: !plan.enabled }
+                                        : p
+                                    )
                                   );
-                                  if (result.success) {
-                                    setPlans((prev) =>
-                                      prev.map((p) =>
-                                        p.dataplan_id === plan.dataplan_id
-                                          ? { ...p, enabled: !plan.enabled }
-                                          : p
-                                      )
-                                    );
-                                    toast.success(result.message);
-                                  } else {
-                                    toast.error(result.message);
-                                  }
-                                }}
-                                className={`px-2 py-1 text-xs rounded ${
-                                  plan.enabled
-                                    ? "bg-emerald-600 text-white"
-                                    : "bg-red-600 text-gray-300"
-                                }`}
-                              >
-                                {plan.enabled ? "Enabled" : "Disabled"}
-                              </button>
-
-                              {/* Edit button */}
-                              <button
-                                onClick={() => {
-                                  if (editPlanId === plan.dataplan_id) {
-                                    setEditPlanId(null);
-                                    setEditMarkup("");
-                                  } else {
-                                    setEditPlanId(plan.dataplan_id);
-                                    setEditMarkup(
-                                      plan.base_markup?.toString() ?? "50"
-                                    );
-                                  }
-                                }}
-                                className="p-1 rounded-full hover:bg-gray-700"
-                              >
-                                <Pencil className="w-4 h-4 text-gray-300" />
-                              </button>
-                            </div>
+                                  toast.success(result.message);
+                                } else {
+                                  toast.error(result.message);
+                                }
+                              }}
+                              className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                plan.enabled
+                                  ? "bg-emerald-600/20 text-emerald-400 border border-emerald-600/50"
+                                  : "bg-red-600/20 text-red-400 border border-red-600/50"
+                              }`}
+                            >
+                              {plan.enabled ? "Enabled" : "Disabled"}
+                            </button>
                           </div>
 
-                          <p className="text-sm text-gray-400">
+                          {/* Duration */}
+                          <p className="text-sm text-gray-400 mb-1">
                             {plan.month_validate}
                           </p>
 
-                          <p className="text-gray-400 text-sm">
-                            Vendor: ₦{vendorCost.toLocaleString()}
+                          {/* Vendor Price */}
+                          <p className="text-gray-300 text-sm flex items-center gap-1">
+                            💰 Vendor Cost:{" "}
+                            <span className="font-medium text-white">
+                              ₦{vendorCost.toLocaleString()}
+                            </span>
                           </p>
 
+                          {/* Markup Section */}
                           {editPlanId === plan.dataplan_id ? (
                             <div className="mt-2 flex items-center gap-2">
                               <input
@@ -418,12 +473,26 @@ export default function AdminDataPlansPage() {
                               </button>
                             </div>
                           ) : (
-                            <p className="text-sm text-gray-400">
-                              Markup: ₦{plan.base_markup}
-                            </p>
+                            <div className="mt-2 flex items-center gap-2">
+                              <span className="px-2 py-1 rounded-full text-xs bg-gray-700 text-gray-200">
+                                Markup: ₦{plan.base_markup}
+                              </span>
+                              <button
+                                onClick={() => {
+                                  setEditPlanId(plan.dataplan_id);
+                                  setEditMarkup(
+                                    plan.base_markup?.toString() ?? "50"
+                                  );
+                                }}
+                                className="p-1 rounded-full hover:bg-gray-700"
+                              >
+                                <Pencil className="w-4 h-4 text-gray-300" />
+                              </button>
+                            </div>
                           )}
 
-                          <p className="text-emerald-400 font-bold mt-2 text-lg">
+                          {/* Final Price */}
+                          <p className="text-emerald-400 font-bold mt-4 text-xl">
                             Final Price: ₦{plan.final_price.toLocaleString()}
                           </p>
                         </div>

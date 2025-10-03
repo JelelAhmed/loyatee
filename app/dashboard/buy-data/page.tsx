@@ -104,19 +104,18 @@ export default function DataPlansPage() {
       return;
     }
 
+    // server handles price/duration
     const result = await purchaseDataPlan({
       userId: userRes.user.id,
       networkCode: String(selectedPlan.network),
       planId: selectedPlan.dataplan_id,
-      planSize: selectedPlan.plan,
-      duration: selectedPlan.month_validate,
       phoneNumber,
-      amount: selectedPlan.final_price,
     });
 
     if (result.success) {
       setSuccessMsg(result.message);
       toast.success(`You purchased ${selectedPlan.plan} successfully ✅`);
+
       // refetch transactions
       const { data: txData } = await supabase
         .from("transactions")
@@ -124,6 +123,7 @@ export default function DataPlansPage() {
         .eq("user_id", userRes.user.id)
         .eq("type", "data_purchase")
         .order("created_at", { ascending: false });
+
       setTransactions(txData ?? []);
     } else {
       setError(result.message);

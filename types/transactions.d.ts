@@ -16,29 +16,26 @@ export type Transaction = {
   funding_id: string;
   date: string;
 };
-
 export interface PurchaseDataPlanInput {
-  userId: string;
-  networkCode: string;
-  phoneNumber: string;
-  duration: string;
-  planId: string;
-  planSize: string;
-  amount: number;
-  ported?: boolean; // optional, defaults to true
+  userId: string; // Authenticated user ID
+  networkCode: string; // Vendor’s network code (e.g., "1" for MTN)
+  planId: string; // Vendor’s plan identifier
+  phoneNumber: string; // Target phone number
+  ported?: boolean;
 }
 
-export type PurchaseResult =
-  | {
-      success: true;
-      message: string;
-      transactionId?: string;
-      newBalance: number;
-    }
-  | {
-      success: false;
-      message: string;
-    };
+// ✅ Result from server -> client
+export interface PurchaseResult {
+  success: boolean;
+  message: string;
+
+  // optional on success
+  transactionId?: string;
+  newBalance?: number;
+
+  // optional on failure
+  errorCode?: string;
+}
 
 export type VendorResponse = {
   transaction_id?: string;

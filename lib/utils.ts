@@ -62,3 +62,54 @@ export function formatCurrency(amount: number | string) {
     maximumFractionDigits: 2,
   });
 }
+
+////  extract the numeric GB value
+export function extractDataSize(planName: string): number {
+  // Try to capture numbers like "1.5GB", "500MB"
+  const match = planName.match(/([\d.]+)\s*(GB|MB)/i);
+  if (!match) return Number.MAX_SAFE_INTEGER;
+
+  let size = parseFloat(match[1]);
+  const unit = match[2].toUpperCase();
+
+  // Convert MB to GB for uniform comparison
+  if (unit === "MB") {
+    size = size / 1024;
+  }
+
+  return size;
+}
+export function extractDurationDays(raw: string): number {
+  if (!raw) return 9999;
+
+  let lower = raw.toLowerCase().trim();
+
+  // Ensure spacing between digits and letters, e.g. "30days" -> "30 days"
+  lower = lower.replace(/(\d)([a-z])/gi, "$1 $2");
+
+  // Find first "<number> <unit>"
+  const match = lower.match(
+    /(\d+(\.\d+)?)\s*(day|days|week|weeks|month|months|year|years)/
+  );
+  if (!match) return 9999;
+
+  const num = parseFloat(match[1]);
+  const unit = match[3];
+
+  if (unit.startsWith("day")) return num;
+  if (unit.startsWith("week")) return num * 7;
+  if (unit.startsWith("month")) return num * 30;
+  if (unit.startsWith("year")) return num * 365;
+
+  return 9999;
+}
+
+export function categorizeDuration(
+  raw: string
+): "daily" | "weekly" | "monthly" {
+  const days = extractDurationDays(raw);
+
+  if (days <= 3) return "daily";
+  if (days <= 14) return "weekly";
+  return "monthly";
+}
