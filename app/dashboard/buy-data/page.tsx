@@ -19,6 +19,12 @@ import { usePagination } from "@/hooks/usePagination";
 import PaginationControls from "@/components/ui/paginationControls";
 import { motion } from "framer-motion";
 
+function formatStatus(status: string) {
+  if (status === "completed") return "Successful";
+  if (status === "failed") return "Failed";
+  return status.charAt(0).toUpperCase() + status.slice(1);
+}
+
 export default function DataPlansPage() {
   const [plans, setPlans] = useState<DataPlan[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -470,6 +476,8 @@ export default function DataPlansPage() {
                           className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
                             tx.status === "completed"
                               ? "bg-emerald-500/10 text-emerald-400"
+                              : tx.status === "disputed"
+                              ? "bg-orange-500/10 text-orange-400"
                               : "bg-red-500/10 text-red-400"
                           }`}
                         >
@@ -478,7 +486,7 @@ export default function DataPlansPage() {
                           ) : (
                             <XCircle className="w-3 h-3" />
                           )}
-                          {tx.status}
+                          {formatStatus(tx.status)}
                         </span>
                       </td>
                       <td>
@@ -514,10 +522,12 @@ export default function DataPlansPage() {
                     className={`px-2 py-1 rounded-full font-semibold ${
                       tx.status === "completed"
                         ? "bg-emerald-500/10 text-emerald-400"
+                        : tx.status === "disputed"
+                        ? "bg-orange-500/10 text-orange-400"
                         : "bg-red-500/10 text-red-400"
                     }`}
                   >
-                    {tx.status}
+                    {formatStatus(tx.status)}
                   </span>
                   <span>
                     {new Date(tx.created_at).toLocaleDateString("en-NG", {

@@ -8,6 +8,7 @@ export async function POST(request: Request) {
   const signature = request.headers.get("x-paystack-signature");
   const body = await request.text();
 
+  // Verify webhook signature
   const hash = crypto.createHmac("sha512", secret).update(body).digest("hex");
   if (hash !== signature) {
     return new Response("Invalid signature", { status: 400 });
@@ -22,7 +23,7 @@ export async function POST(request: Request) {
     const payment_method = data.payment_method;
 
     try {
-      // Step 1: Mark funding as completed (only if still pending)
+      // Step 1️⃣: Mark funding as completed (only if still pending)
       const { data: funding, error: fundingError } = await supabase
         .from("wallet_fundings")
         .update({
@@ -31,39 +32,39 @@ export async function POST(request: Request) {
         })
         .eq("payment_reference", reference)
         .eq("status", "pending")
-        .select("id, user_id, amount")
+        .select("id, user_id, amount, payment_reference, payment_method")
         .single();
 
       if (fundingError) throw new Error(fundingError.message);
 
-      // If no pending funding found → already processed
       if (!funding) {
         return new Response("Already processed or invalid reference", {
           status: 200,
         });
       }
 
-      // Step 2: Insert transaction safely (avoid duplicates by vendor_transaction_id)
+      // Step 2️⃣: Insert transaction (now includes vendor_response)
       const { error: txError } = await supabase.from("transactions").insert(
         {
           user_id: funding.user_id,
           type: "wallet_funding",
           amount,
-          payment_method: payment_method,
+          payment_method: funding.payment_method ?? payment_method,
+          payment_reference: funding.payment_reference ?? reference,
           status: "completed",
           vendor_transaction_id: reference,
           funding_id: funding.id,
+          vendor_response: data ? JSON.stringify(data) : null, // ✅ full Paystack payload
           created_at: new Date().toISOString(),
         },
         { count: "exact" }
       );
 
       if (txError && txError.code !== "23505") {
-        // ignore unique violation, throw others
         throw new Error(txError.message);
       }
 
-      // Step 3: Increment balance ONLY if transaction was new
+      // Step 3️⃣: Increment wallet balance ONLY if transaction was new
       if (!txError) {
         const { error: balanceError } = await supabase.rpc(
           "increment_wallet_balance",
@@ -74,9 +75,11 @@ export async function POST(request: Request) {
         );
         if (balanceError) throw new Error(balanceError.message);
       }
-    } catch (err) {
+
+      return new Response("OK", { status: 200 });
+    } catch (err: any) {
       console.error("Webhook error:", err);
-      return new Response("Webhook failed", { status: 500 });
+      return new Response(`Webhook failed: ${err.message}`, { status: 500 });
     }
   }
 

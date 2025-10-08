@@ -12,7 +12,13 @@ type Transaction = {
   phone_number?: number;
 };
 
-export default function TransactionCardDash({ entry }: { entry: Transaction }) {
+export default function TransactionCardDash({
+  entry,
+  onReport,
+}: {
+  entry: Transaction;
+  onReport?: (tx: Transaction) => void;
+}) {
   const Icon =
     entry.type === "wallet_funding"
       ? Wallet
@@ -32,10 +38,12 @@ export default function TransactionCardDash({ entry }: { entry: Transaction }) {
         </div>
         <span
           className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
-            entry.status === "success"
+            entry.status === "completed"
               ? "bg-green-500/20 text-green-400"
               : entry.status === "pending"
               ? "bg-yellow-500/20 text-yellow-400"
+              : entry.status === "disputed"
+              ? "bg-orange-500/20 text-orange-400"
               : "bg-red-500/20 text-red-400"
           }`}
         >
@@ -49,7 +57,7 @@ export default function TransactionCardDash({ entry }: { entry: Transaction }) {
           <span className="text-gray-500">Date:</span>{" "}
           {new Date(entry.created_at).toLocaleDateString("en-NG", {
             day: "2-digit",
-            month: "short", // e.g. Aug
+            month: "short",
             year: "numeric",
           })}
         </p>
@@ -61,13 +69,31 @@ export default function TransactionCardDash({ entry }: { entry: Transaction }) {
         {entry.type === "data_purchase" && (
           <>
             <p>
-              <span className="text-gray-500">Duration:</span> {entry.duration}
+              <span className="text-gray-500">Duration:</span>{" "}
+              {entry.duration || "-"}
             </p>
             <p>
               <span className="text-gray-500">Phone:</span>{" "}
               {entry.phone_number || "-"}
             </p>
           </>
+        )}
+      </div>
+
+      {/* Footer actions */}
+      <div className="flex justify-end mt-3">
+        {entry.type === "data_purchase" && entry.status === "completed" && (
+          <button
+            onClick={() => onReport?.(entry)}
+            className="text-yellow-400 hover:text-yellow-500 text-xs font-medium"
+          >
+            Report Issue
+          </button>
+        )}
+        {entry.status === "disputed" && (
+          <span className="inline-block px-2.5 py-1 rounded-full text-xs font-bold bg-orange-500/10 text-orange-400">
+            ⚠ Disputed
+          </span>
         )}
       </div>
     </div>

@@ -15,6 +15,7 @@ export default function AdminNavbar() {
     { href: "/admin/transactions", label: "Transactions" },
     { href: "/admin/data-plans", label: "Data Plans" },
     { href: "/admin/settings", label: "Settings" },
+    { href: "/admin/audit-logs", label: "Audit Logs" },
   ];
 
   // Click outside to close

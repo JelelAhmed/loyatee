@@ -3,10 +3,13 @@
 import { useState, useEffect } from "react";
 import { Dialog } from "@headlessui/react";
 import { Filter } from "lucide-react";
+import { toast } from "sonner";
 import { CreateSupabaseClient } from "@/lib/supabase/client";
+import { reportTransactionIssue } from "@/app/actions/transaction.actions";
 import { usePagination } from "@/hooks/usePagination";
 import PaginationControls from "@/components/ui/paginationControls";
 import TransactionCardDash from "@/components/dashboard/TransactionCardDash";
+import ReportIssueModal from "@/components/dashboard/ReportIssueModal";
 
 const NETWORKS: Record<string, string> = {
   "1": "Airtel",
@@ -37,6 +40,11 @@ export default function Transactions() {
   const [search, setSearch] = useState("");
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [complaintOpen, setComplaintOpen] = useState(false);
+  const [complaintTx, setComplaintTx] = useState<any | null>(null);
+  const [issueType, setIssueType] = useState("Data not received");
+  const [note, setNote] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const supabase = CreateSupabaseClient;
 
@@ -57,7 +65,36 @@ export default function Transactions() {
     fetchTransactions();
   }, [supabase]);
 
-  console.log(transactions, "transactios makeing");
+  async function handleComplaintSubmit(issueType: string, note: string) {
+    if (!complaintTx) return;
+
+    setSubmitting(true);
+    const result = await reportTransactionIssue(
+      complaintTx.id,
+      issueType,
+      note
+    );
+    setSubmitting(false);
+
+    if (result.success) {
+      toast.success(result.message);
+      setTransactions((prev) =>
+        prev.map((t) =>
+          t.id === complaintTx.id
+            ? {
+                ...t,
+                status: "disputed",
+                dispute_type: issueType,
+                dispute_note: note,
+              }
+            : t
+        )
+      );
+      setComplaintOpen(false);
+    } else {
+      toast.error(result.message);
+    }
+  }
 
   // filters state
   const [filters, setFilters] = useState({
@@ -202,19 +239,29 @@ export default function Transactions() {
                                   ? "bg-emerald-500/10 text-emerald-400"
                                   : entry.status === "pending"
                                   ? "bg-yellow-500/10 text-yellow-400"
+                                  : entry.status === "disputed"
+                                  ? "bg-orange-500/10 text-orange-400"
                                   : "bg-red-500/10 text-red-400"
                               }`}
                             >
                               {formatStatus(entry.status)}
                             </span>
                           </td>
-                          <td className="px-5 py-4 text-right">
-                            <a
-                              href="#"
-                              className="text-emerald-400 hover:text-emerald-500 transition-colors text-xs font-medium"
-                            >
-                              View Details
-                            </a>
+                          <td className="px-5 py-4 text-right space-x-2">
+                            {["data_purchase", "wallet_funding"].includes(
+                              entry.type
+                            ) &&
+                              entry.status === "completed" && (
+                                <button
+                                  onClick={() => {
+                                    setComplaintTx(entry);
+                                    setComplaintOpen(true);
+                                  }}
+                                  className="text-yellow-400 hover:text-yellow-500 text-xs font-medium"
+                                >
+                                  Report Issue
+                                </button>
+                              )}
                           </td>
                         </tr>
                       ))
@@ -224,61 +271,17 @@ export default function Transactions() {
               </div>
 
               {/* Mobile Cards */}
-              {/* <div className="sm:hidden space-y-4 p-4">
-                {pagedTransactions.map((entry, i) => (
-                  <div
-                    key={entry.id || i}
-                    className="bg-gray-900 p-5 rounded-lg border border-gray-800 shadow-sm text-xs"
-                  >
-                    {[
-                      ["Date", new Date(entry.created_at).toLocaleString()],
-                      ["Type", formatType(entry.type)],
-                      ["Network", NETWORKS[entry.network_code] || "-"],
-                      ["Amount", formatCurrency(entry.amount)],
-                      ["Data Size", entry.data_size || "-"],
-                      ["Duration", entry.duration || "-"],
-                      ["Phone", entry.phone_number || "-"],
-                    ].map(([label, value]) => (
-                      <div
-                        key={label}
-                        className="flex justify-between mb-2 last:mb-0"
-                      >
-                        <span className="font-semibold text-gray-400">
-                          {label}
-                        </span>
-                        <span className="text-white">{value}</span>
-                      </div>
-                    ))}
-                    <div className="flex justify-between mt-2">
-                      <span className="font-semibold text-gray-400">
-                        Status
-                      </span>
-                      <span
-                        className={`inline-block px-2 py-1 rounded-full ${
-                          entry.status === "completed"
-                            ? "text-emerald-400 bg-emerald-500/10"
-                            : entry.status === "pending"
-                            ? "text-yellow-400 bg-yellow-500/10"
-                            : "text-red-400 bg-red-500/10"
-                        }`}
-                      >
-                        {formatStatus(entry.status)}
-                      </span>
-                    </div>
-                    <div className="flex justify-end mt-3">
-                      <a
-                        href="#"
-                        className="text-emerald-400 hover:text-emerald-500 text-xs font-medium"
-                      >
-                        View Details
-                      </a>
-                    </div>
-                  </div>
-                ))}
-              </div> */}
+              {/* Mobile Cards */}
               <div className="sm:hidden space-y-4 p-4">
                 {pagedTransactions.map((entry, i) => (
-                  <TransactionCardDash key={entry.id || i} entry={entry} />
+                  <TransactionCardDash
+                    key={entry.id || i}
+                    entry={entry}
+                    onReport={(tx) => {
+                      setComplaintTx(tx);
+                      setComplaintOpen(true);
+                    }}
+                  />
                 ))}
               </div>
             </div>
@@ -314,6 +317,7 @@ export default function Transactions() {
       </main>
 
       {/* Filter Modal */}
+      {/* (keep your filter modal code unchanged) */}
       <Dialog
         open={filterOpen}
         onClose={() => setFilterOpen(false)}
@@ -395,6 +399,15 @@ export default function Transactions() {
           </Dialog.Panel>
         </div>
       </Dialog>
+
+      {/* Complaint Modal */}
+      <ReportIssueModal
+        open={complaintOpen}
+        onClose={() => setComplaintOpen(false)}
+        transaction={complaintTx}
+        submitting={submitting}
+        onSubmit={handleComplaintSubmit}
+      />
     </div>
   );
 }
