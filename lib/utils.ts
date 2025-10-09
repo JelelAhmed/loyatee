@@ -113,3 +113,24 @@ export function categorizeDuration(
   if (days <= 14) return "weekly";
   return "monthly";
 }
+
+export function formatDateTime(timestamp?: string | Date): string {
+  if (!timestamp) return "—";
+
+  try {
+    const date = new Date(timestamp);
+
+    // Example: "14 Aug 2025, 22:44"
+    return date.toLocaleString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false, // 👈 forces 24-hour format
+    });
+  } catch (err) {
+    console.error("Invalid timestamp:", timestamp);
+    return "Invalid date";
+  }
+}
