@@ -1,6 +1,7 @@
 "use client";
 
 import { formatDateTime } from "@/lib/utils";
+import StatusBadge from "../ui/StatusBadge";
 
 interface DisplayTransaction {
   id: string;
@@ -34,17 +35,6 @@ export default function TransactionTableReadonly({
 
         <tbody className="divide-y divide-white/10">
           {transactions.map((tx) => {
-            const lowerStatus = tx.status?.toLowerCase();
-
-            const statusClass =
-              lowerStatus === "completed"
-                ? "text-emerald-400 bg-emerald-500/20"
-                : lowerStatus === "pending"
-                ? "text-amber-400 bg-amber-500/20"
-                : lowerStatus === "failed"
-                ? "text-red-400 bg-red-500/20"
-                : "text-gray-300 bg-gray-600/20";
-
             return (
               <tr
                 key={tx.id}
@@ -64,11 +54,7 @@ export default function TransactionTableReadonly({
                   {tx.payment_reference || tx.funding_id || "—"}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">
-                  <span
-                    className={`inline-block px-3 py-1 text-xs font-medium rounded-full capitalize ${statusClass}`}
-                  >
-                    {tx.status}
-                  </span>
+                  <StatusBadge status={tx.status} size="md" />
                 </td>
               </tr>
             );

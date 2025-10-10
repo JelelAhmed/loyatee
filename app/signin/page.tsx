@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Button from "@/components/ui/Button";
+import { toast } from "sonner";
 import { useActionState, useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signInWithPassword } from "@/app/actions/auth.actions";
@@ -22,6 +23,10 @@ function SignInContent() {
   useEffect(() => {
     if (searchParams.get("verified") === "true") {
       setVerifiedMessage("Your email has been verified! Please log in.");
+    }
+
+    if (searchParams.get("error") === "suspended") {
+      toast.error("Account is Suspended. Contact Support yata@admin");
     }
   }, [searchParams]);
 
@@ -79,8 +84,24 @@ function SignInContent() {
             </div>
           </div>
           {state.error && (
-            <p className="text-red-400 text-sm mt-2">{state.error}</p>
+            <p
+              className="text-red-400 text-sm mt-2"
+              dangerouslySetInnerHTML={{
+                __html: state.error
+                  // highlight emails
+                  .replace(
+                    /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g,
+                    '<span class="text-green-400 font-medium">$1</span>'
+                  )
+                  // highlight phone numbers (Nigerian or international)
+                  .replace(
+                    /(\+?\d{1,4}[\s-]?\(?\d{2,4}\)?[\s-]?\d{3,4}[\s-]?\d{3,4})/g,
+                    '<span class="text-green-400 font-medium">$1</span>'
+                  ),
+              }}
+            />
           )}
+
           <div className="flex justify-between items-center mt-1">
             <Link
               href="/forgot-password"

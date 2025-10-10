@@ -1,5 +1,7 @@
 "use client";
 
+import StatusBadge from "../ui/StatusBadge";
+
 interface User {
   id: string;
   email: string;
@@ -73,12 +75,8 @@ export default function UserTable({
                     maximumFractionDigits: 2,
                   })}
                 </td>
-                <td
-                  className={`px-6 py-3 font-semibold whitespace-nowrap ${
-                    user.status === "Active" ? "text-green-400" : "text-red-400"
-                  }`}
-                >
-                  {user.status}
+                <td className={`px-6 py-3 font-semibold whitespace-nowrap`}>
+                  <StatusBadge status={user.status} size="sm" />
                 </td>
                 <td className="px-6 py-3 whitespace-nowrap">
                   {user.joinedDate}

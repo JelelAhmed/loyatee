@@ -127,9 +127,9 @@ export default function TransactionCard({
         {transaction.type === "wallet_funding" && (
           <div className="flex justify-between">
             <span className="font-semibold text-[var(--text-secondary)]">
-              Funding ID
+              Payment Ref
             </span>
-            <span>{transaction.funding_id}</span>
+            <span>{transaction.payment_reference ?? "-"}</span>
           </div>
         )}
 

@@ -4,6 +4,7 @@
 
 import { cookies } from "next/headers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import { SignInState, AuthState } from "@/types/auth";
 
@@ -24,30 +25,118 @@ export async function signInWithPassword(
     const password = formData.get("password") as string | null;
 
     if (!identifier || !password) {
-      return { success: false, error: "Identifier and password are required" };
+      return { success: false, error: "Identifier and password are required." };
     }
 
-    const isPhone = /^[\d+]+$/.test(identifier);
+    const isPhone = /^[\d+]+$/.test(identifier.trim());
+    const normalizedIdentifier = identifier.trim().toLowerCase();
 
     const { error } = await supabase.auth.signInWithPassword(
       isPhone
-        ? { phone: identifier, password }
-        : { email: identifier, password }
+        ? { phone: normalizedIdentifier, password }
+        : { email: normalizedIdentifier, password }
     );
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      let message = error.message;
+
+      console.log(message, "inside toggleban");
+
+      // --- Handle known Supabase Auth errors gracefully ---
+      if (message.includes("banned")) {
+        message =
+          "Your account has been suspended. Please contact support yate@admin.com for assistance.";
+      } else if (message.includes("Invalid login credentials")) {
+        message =
+          "Invalid login credentials. Please check your details and try again.";
+      } else if (message.includes("Email not confirmed")) {
+        message = `Your email (${normalizedIdentifier}) is not verified. Please check your inbox.`;
+      } else if (
+        message.includes("rate limit") ||
+        message.includes("too many")
+      ) {
+        message =
+          "Too many login attempts. Please wait a few minutes and try again.";
+      }
+
+      // --- Highlight email or phone number if present in the message ---
+      message = message.replace(
+        /([\w.+-]+@[\w-]+\.[\w.-]+)/g,
+        `<span class="text-green-400 font-medium">$1</span>`
+      );
+      message = message.replace(
+        /(\+?\d{7,15})/g,
+        `<span class="text-green-400 font-medium">$1</span>`
+      );
+
+      return { success: false, error: message };
+    }
 
     return { success: true, error: null };
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : "An error occurred",
+      error:
+        error instanceof Error
+          ? error.message
+          : "An unexpected error occurred. Please try again.",
     };
   }
 }
 
-// - EMAIL SIGN UP (WITH EMAIL VERIFICATION) —
+// export async function signInWithPassword(
+//   _prevState: SignInState,
+//   formData: FormData
+// ): Promise<SignInState> {
+//   try {
+//     const identifier = formData.get("identifier") as string | null;
+//     const password = formData.get("password") as string | null;
 
+//     if (!identifier || !password) {
+//       return { success: false, error: "Identifier and password are required" };
+//     }
+
+//     const isPhone = /^[\d+]+$/.test(identifier);
+//     const supabase = supabaseAdmin;
+
+//     // ✅ Check if user is banned before authenticating
+//     const { data: userRecord, error: userError } = await supabase
+//       .from("users")
+//       .select("id, is_banned")
+//       .eq(isPhone ? "phone" : "email", identifier)
+//       .single();
+
+//     if (userError && userError.code !== "PGRST116") {
+//       console.error("Error fetching user:", userError.message);
+//     }
+
+//     if (userRecord?.is_banned) {
+//       return {
+//         success: false,
+//         error:
+//           "Your account has been banned. Please contact support at support@loyatee.com or call +234 812 345 6789 for assistance.",
+//       };
+//     }
+
+//     // Proceed with actual Supabase authentication
+//     const { error } = await supabaseAdmin.auth.signInWithPassword(
+//       isPhone
+//         ? { phone: identifier, password }
+//         : { email: identifier, password }
+//     );
+
+//     if (error) throw new Error(error.message);
+
+//     return { success: true, error: null };
+//   } catch (error) {
+//     return {
+//       success: false,
+//       error: error instanceof Error ? error.message : "An error occurred",
+//     };
+//   }
+// }
+
+// - EMAIL SIGN UP (WITH EMAIL VERIFICATION) —
 export async function signUpWithEmail(
   prevState: SignUpState,
   formData: FormData
@@ -185,7 +274,6 @@ export async function verifyPhoneOtp(
 }
 
 // — SIGN OUT —
-
 export async function signOut(_formData: FormData) {
   const supabase = await createSupabaseServerClient();
   const cookieStore = await cookies();
@@ -209,6 +297,7 @@ export async function signOut(_formData: FormData) {
 
   redirect("/signin");
 }
+
 // --- REQUEST PASSWORD RESET ---
 export async function requestPasswordReset(
   _prevState: AuthState,

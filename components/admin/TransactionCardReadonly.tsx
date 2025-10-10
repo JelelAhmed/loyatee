@@ -1,4 +1,5 @@
 import { formatDateTime } from "@/lib/utils";
+import StatusBadge from "../ui/StatusBadge";
 
 interface DisplayTransaction {
   id: string;
@@ -46,11 +47,7 @@ export default function TransactionCardReadonly({
             ₦{transaction.amount}
           </p>
         </div>
-        <span
-          className={`text-xs px-3 py-1 rounded-full font-medium capitalize ${statusColor}`}
-        >
-          {transaction.status}
-        </span>
+        <StatusBadge status={transaction.status} size="sm" />
       </div>
 
       {/* Reference */}

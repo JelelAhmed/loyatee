@@ -176,6 +176,8 @@
 
 "use client";
 
+import StatusBadge from "../ui/StatusBadge";
+
 interface User {
   id: string;
   email: string;
@@ -242,15 +244,7 @@ export default function UserCard({
         <span className="font-semibold text-[var(--text-secondary)]">
           Status
         </span>
-        <span
-          className={
-            user.status === "Active"
-              ? "text-green-400 font-semibold"
-              : "text-red-400 font-semibold"
-          }
-        >
-          {user.status}
-        </span>
+        <StatusBadge status={user.status} size="sm" />
       </div>
       <div className="flex justify-between">
         <span className="font-semibold text-[var(--text-secondary)]">
