@@ -1,10 +1,10 @@
-// "use server";
+"use server";
 
 // import { supabaseAdmin } from "@/lib/supabase/admin";
 
-// type ActionResult<T = any> =
-//   | { success: true; message: string; data?: T }
-//   | { success: false; message: string };
+type ActionResult<T = any> =
+  | { success: true; message: string; data?: T }
+  | { success: false; message: string };
 
 // export async function toggleUserBan(
 //   userId: string,
@@ -144,7 +144,6 @@
 //     };
 //   }
 // }
-"use server";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
@@ -185,58 +184,56 @@ async function getCurrentAdminId() {
 /**
  * Toggle ban/unban for a user
  */
-export async function toggleUserBan(userId: string, isBanned: boolean) {
-  const supabase = supabaseAdmin;
+export async function toggleUserBan(
+  userId: string,
+  isBanned: boolean
+): Promise<ActionResult> {
+  const supabase = supabaseAdmin; // Assumes service role client
 
   try {
     const adminId = await getCurrentAdminId();
     const newBanState = !isBanned;
+    const banDuration = newBanState ? "876600h" : "none"; // 100 years or unban
 
-    // Permanent ban = 100 years in future
-    const bannedUntil = newBanState
-      ? new Date(
-          new Date().setFullYear(new Date().getFullYear() + 100)
-        ).toISOString()
-      : null;
-
-    // 1️⃣ Update auth metadata
+    // 1️⃣ Update Auth (sets banned_until internally)
     const { data: authData, error: authError } =
       await supabase.auth.admin.updateUserById(userId, {
-        app_metadata: { banned_until: bannedUntil },
+        ban_duration: banDuration,
       });
-
     if (authError) return { success: false, message: authError.message };
 
-    // 2️⃣ Revoke sessions (if banning)
+    // 2️⃣ Revoke sessions for immediate effect (optional but recommended)
     if (newBanState) {
-      try {
-        // Revokes all refresh tokens — effectively signing out everywhere
-        const { error: revokeError } = await supabase.auth.admin.signOut(
-          userId
+      const { error: signOutError } = await supabase.auth.admin.signOut(userId);
+      if (signOutError) {
+        console.error(
+          `Ban succeeded but signOut failed for ${userId}:`,
+          signOutError
         );
-        if (revokeError) console.warn("Sign-out failed:", revokeError);
-      } catch (e) {
-        console.warn("Sign-out not supported in current SDK version");
+        // Don't fail the whole op—ban is still set
       }
     }
 
-    // 3️⃣ Update user table
+    // 3️⃣ Update users table
     const { error: tableError } = await supabase
       .from("users")
       .update({ is_banned: newBanState })
       .eq("id", userId);
 
     if (tableError) {
-      console.error("Users table update failed:", tableError);
+      console.error(
+        `Auth ban succeeded but users table update failed for ${userId}`,
+        tableError
+      );
       return {
         success: false,
-        message: `Ban updated in auth, but failed to update users table: ${tableError.message}`,
+        message: `User ban updated in auth, but failed to update users table: ${tableError.message}`,
       };
     }
 
     // 4️⃣ Log admin action
     await logAdminAction(adminId, "TOGGLE_BAN", "users", userId, {
-      new_state: newBanState ? "Suspended" : "Suspended",
+      new_state: newBanState ? "Banned" : "Unbanned",
     });
 
     return {
@@ -246,10 +243,9 @@ export async function toggleUserBan(userId: string, isBanned: boolean) {
     };
   } catch (err) {
     console.error("Failed to toggle user ban:", err);
-    return { success: false, message: "Unauthorized or unexpected error" };
+    return { success: false, message: "Unexpected server error" };
   }
 }
-
 /**
  * Change user role
  */
