@@ -54,7 +54,7 @@ export default function AdminLayout({
       <div className="relative z-10 flex h-full grow flex-col wavy-gradient-background">
         <AdminNavbar />
         <main className="pt-16">{children}</main>
-        <svg
+        {/* <svg
           className="wavy-svg"
           fill="none"
           viewBox="0 0 1440 100"
@@ -64,7 +64,7 @@ export default function AdminLayout({
             d="M0 50C120 20 240 80 360 70C480 60 600 10 720 30C840 50 960 90 1080 80C1200 70 1320 20 1440 50V100H0V50Z"
             fill="white"
           />
-        </svg>
+        </svg> */}
       </div>
     </div>
   );
