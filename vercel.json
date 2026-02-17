@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/keep-alive",
-      "schedule": "5-14 11 * * *"
+      "schedule": "15-24 11 * * *"
     }
   ]
 }
