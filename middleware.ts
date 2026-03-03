@@ -139,22 +139,28 @@ function createSupabaseAdminClient() {
         autoRefreshToken: false,
         persistSession: false,
       },
-    }
+    },
   );
 }
 
 export async function middleware(request: NextRequest) {
   const { response, user } = await updateSession(request);
+  const pathname = request.nextUrl.pathname;
 
   console.log(
     `[Middleware] Path: ${request.nextUrl.pathname}, User ID: ${
       user?.id || "none"
-    }, Session valid: ${!!user}`
+    }, Session valid: ${!!user}`,
   );
+
+  // Allow unauthenticated cron/internal keep-alive pings to Supabase
+  if (pathname === "/api/keep-alive") {
+    console.log("[Middleware] Allowing unauthenticated keep-alive endpoint");
+    return response; // skips all auth checks → cron reaches handler
+  }
 
   response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
 
-  const pathname = request.nextUrl.pathname;
   const isApiPath = pathname.startsWith("/api");
 
   const publicPaths = [
@@ -172,10 +178,10 @@ export async function middleware(request: NextRequest) {
   const authPaths = ["/signin", "/signup"];
 
   const isPublic = publicPaths.some(
-    (path) => pathname === path || pathname.startsWith(path + "/")
+    (path) => pathname === path || pathname.startsWith(path + "/"),
   );
   const isAuthPath = authPaths.some(
-    (path) => pathname === path || pathname.startsWith(path + "/")
+    (path) => pathname === path || pathname.startsWith(path + "/"),
   );
 
   if (isPublic && !isAuthPath) {
@@ -211,7 +217,7 @@ export async function middleware(request: NextRequest) {
     console.log(
       `[Middleware] User role resolved: ${userRole}, banned_until: ${
         extendedUser?.banned_until || "null"
-      }`
+      }`,
     );
   } else {
     console.log(`[Middleware] No user session, treating as unauth`);
@@ -240,7 +246,7 @@ export async function middleware(request: NextRequest) {
     const bannedUntil = extendedUser.banned_until;
     if (bannedUntil && new Date(bannedUntil) > new Date()) {
       console.log(
-        `[Middleware] Banned user ${user.id} blocked from ${pathname} (until ${bannedUntil})`
+        `[Middleware] Banned user ${user.id} blocked from ${pathname} (until ${bannedUntil})`,
       );
       if (isApiPath) {
         return new NextResponse(
@@ -248,18 +254,18 @@ export async function middleware(request: NextRequest) {
           {
             status: 403,
             headers: { "Content-Type": "application/json" },
-          }
+          },
         );
       } else {
         // Break loop: Delete auth cookies to force sign-out, then redirect to signin
         const redirectResponse = NextResponse.redirect(
-          new URL("/signin?error=suspended", request.url)
+          new URL("/signin?error=suspended", request.url),
         );
         // Delete Supabase auth cookies (exact names for your project ref: itwwtuveojxmauokucyo)
         redirectResponse.cookies.delete("sb-itwwtuveojxmauokucyo-auth-token");
         redirectResponse.cookies.delete("sb-itwwtuveojxmauokucyo-access-token");
         redirectResponse.cookies.delete(
-          "sb-itwwtuveojxmauokucyo-refresh-token"
+          "sb-itwwtuveojxmauokucyo-refresh-token",
         );
         return redirectResponse;
       }
